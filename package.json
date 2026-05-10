@@ -22,14 +22,20 @@
   },
   "homepage": "https://github.com/Expressmovers2024/screensmart-ai#readme",
   "dependencies": {
+    "@supabase/supabase-js": "^2.105.4",
     "expo": "^55.0.23",
     "expo-image-picker": "~55.0.20",
     "expo-linking": "~55.0.15",
     "expo-router": "~55.0.14",
+    "nativewind": "^4.2.3",
     "react": "19.2.0",
     "react-native": "0.83.6",
+    "react-native-reanimated": "4.2.1",
     "react-native-safe-area-context": "~5.6.2",
-    "react-native-screens": "~4.23.0"
+    "react-native-screens": "~4.23.0",
+    "react-native-worklets": "0.7.4",
+    "tailwindcss": "^4.3.0",
+    "zustand": "^5.0.13"
   },
   "devDependencies": {
     "@types/react": "^19.2.14",

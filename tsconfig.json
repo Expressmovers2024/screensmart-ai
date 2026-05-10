@@ -4,8 +4,21 @@
     "strict": true,
     "baseUrl": ".",
     "paths": {
-      "@/*": ["src/*"]
+      "@/*": ["*"]
     }
   },
-  "include": ["app/**/*.ts", "app/**/*.tsx", "src/**/*.ts", "src/**/*.tsx"]
+  "include": [
+    "app/**/*.ts",
+    "app/**/*.tsx",
+    "agents/**/*.ts",
+    "components/**/*.ts",
+    "components/**/*.tsx",
+    "constants/**/*.ts",
+    "hooks/**/*.ts",
+    "services/**/*.ts",
+    "store/**/*.ts",
+    "types/**/*.ts",
+    "utils/**/*.ts",
+    "nativewind-env.d.ts"
+  ]
 }

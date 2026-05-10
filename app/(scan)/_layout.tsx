@@ -5,6 +5,7 @@ export default function ScanLayout() {
     <Stack screenOptions={{ headerShown: false }}>
       <Stack.Screen name="upload-screenshot" />
       <Stack.Screen name="scan-result" />
+      <Stack.Screen name="summary" />
     </Stack>
   );
 }

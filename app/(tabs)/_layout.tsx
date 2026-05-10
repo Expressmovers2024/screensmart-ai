@@ -1,28 +1,26 @@
 import { Tabs } from "expo-router";
 
-import { colors, radius, spacing } from "../../src/theme/tokens";
-
 export default function TabsLayout() {
   return (
     <Tabs
       screenOptions={{
         headerShown: false,
-        tabBarActiveTintColor: colors.primary,
+        tabBarActiveTintColor: "#60A5FA",
         tabBarHideOnKeyboard: true,
-        tabBarInactiveTintColor: colors.textMuted,
+        tabBarInactiveTintColor: "#94A3B8",
         tabBarLabelStyle: {
           fontSize: 12,
           fontWeight: "800"
         },
         tabBarStyle: {
-          backgroundColor: colors.surface,
-          borderTopColor: colors.borderSoft,
+          backgroundColor: "#0F172A",
+          borderTopColor: "rgba(255,255,255,0.12)",
           height: 72,
-          paddingBottom: spacing.md,
-          paddingTop: spacing.sm
+          paddingBottom: 16,
+          paddingTop: 8
         },
         tabBarItemStyle: {
-          borderRadius: radius.lg
+          borderRadius: 24
         }
       }}
     >
