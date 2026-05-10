@@ -63,8 +63,20 @@ Live recording, browser extensions, desktop apps, advanced AI orchestration, pay
 
 ## Development
 
+This project uses npm only. Keep `package-lock.json` committed and do not add
+Yarn, pnpm, or Bun lockfiles.
+
 ```bash
 npm install
 npm run typecheck
+npm audit --omit=dev
+npx expo-doctor
 npm start
+```
+
+For deterministic CI installs, use:
+
+```bash
+npm ci
+npm run typecheck
 ```
