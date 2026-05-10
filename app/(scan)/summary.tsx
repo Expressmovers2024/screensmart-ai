@@ -4,6 +4,7 @@ import { ScrollView, Text, View } from "react-native";
 import { LoadingState, PrimaryButton, ReadableTextBlock, ScreenCard } from "@/components/ui";
 import { useCurrentSession } from "@/hooks/useCurrentSession";
 import { aiService, type AiResponse, type AiTask } from "@/services/ai";
+import { storageService } from "@/services/storage";
 import { useSessionStore } from "@/store/sessionStore";
 import type { ScreenSession } from "@/types/screenSession";
 
@@ -55,7 +56,15 @@ export default function SummaryRoute() {
 
       setResponse(nextResponse);
       if (task === "short_summary" || task === "detailed_summary") {
+        const updatedSession = {
+          ...session,
+          summary: nextResponse.content
+        };
+
         updateCurrentSession({ summary: nextResponse.content });
+        if (currentSession) {
+          void storageService.saveScreenSession(updatedSession);
+        }
       }
     } catch (error) {
       setErrorMessage(error instanceof Error ? error.message : "AI generation failed.");

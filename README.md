@@ -55,6 +55,7 @@ The upload and OCR routes now include the first MVP flow:
 - TalkBack AI chat grounded in the current OCR session with persisted history, timestamps, typing state, microphone placeholder, quick prompts, and contextual mock responses
 - OpenRouter-ready AI provider architecture with fallback provider, typed responses, prompt/routing modules, token usage placeholders, OCR grounding, and context chunking
 - future-ready agent contracts, reusable session context, provider descriptors, and service boundary documentation for later multi-agent/browser/desktop support
+- Supabase-ready storage architecture with typed database interfaces, mock local user state, local-first repository fallback, session cards, recent activity, notes, settings, and persistence for OCR sessions, AI messages, notes, and audio events
 
 Copy `.env.example` to configure OpenRouter for local builds. Do not hardcode secrets; production mobile builds should use a secure backend or edge-function proxy for provider credentials.
 

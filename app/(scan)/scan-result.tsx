@@ -5,6 +5,7 @@ import { Image, ScrollView, Text, View } from "react-native";
 
 import { PrimaryButton, ReadableTextBlock, ScreenCard } from "@/components/ui";
 import { routes } from "@/constants/routes";
+import { storageService } from "@/services/storage";
 import { useSessionStore } from "@/store/sessionStore";
 
 export default function ScanResultRoute() {
@@ -13,6 +14,7 @@ export default function ScanResultRoute() {
   const saveCurrentSessionToLibrary = useSessionStore((state) => state.saveCurrentSessionToLibrary);
   const [copyStatus, setCopyStatus] = useState("Copy extracted text");
   const [saveStatus, setSaveStatus] = useState("Save to library");
+  const [isSaving, setIsSaving] = useState(false);
 
   const extractedText = currentSession?.ocr?.extractedText;
 
@@ -25,11 +27,17 @@ export default function ScanResultRoute() {
     setCopyStatus("Copied");
   };
 
-  const saveToLibrary = () => {
+  const saveToLibrary = async () => {
     const savedSession = saveCurrentSessionToLibrary();
 
     if (savedSession) {
-      setSaveStatus("Saved to library");
+      setIsSaving(true);
+      try {
+        await storageService.saveScreenSession(savedSession);
+        setSaveStatus("Saved to library");
+      } finally {
+        setIsSaving(false);
+      }
     }
   };
 
@@ -78,7 +86,7 @@ export default function ScanResultRoute() {
             {new Date(currentSession.ocr.processedAt).toLocaleTimeString()}
           </Text>
           <PrimaryButton label={copyStatus} onPress={copyText} />
-          <PrimaryButton label={saveStatus} onPress={saveToLibrary} variant="secondary" />
+          <PrimaryButton disabled={isSaving} label={isSaving ? "Saving..." : saveStatus} onPress={saveToLibrary} variant="secondary" />
         </ScreenCard>
 
         <ScreenCard title="Next steps">

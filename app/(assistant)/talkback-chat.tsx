@@ -8,6 +8,7 @@ import { routes } from "@/constants/routes";
 import { useChatHistory } from "@/hooks/useChatHistory";
 import { useCurrentSession } from "@/hooks/useCurrentSession";
 import { aiService, createOcrContext } from "@/services/ai";
+import { storageService } from "@/services/storage";
 import { useSessionStore } from "@/store/sessionStore";
 import type { ChatMessage } from "@/types/chat";
 import type { ScreenSession } from "@/types/screenSession";
@@ -110,6 +111,7 @@ export default function TalkBackChatRoute() {
 
     setDraft("");
     appendChatMessage(session.id, userMessage);
+    void storageService.saveAiMessage(userMessage, session.id);
     setIsThinking(true);
     requestAnimationFrame(() => scrollRef.current?.scrollToEnd({ animated: true }));
 
@@ -120,6 +122,7 @@ export default function TalkBackChatRoute() {
     });
 
     appendChatMessage(session.id, response);
+    void storageService.saveAiMessage(response, session.id);
     setIsThinking(false);
     requestAnimationFrame(() => scrollRef.current?.scrollToEnd({ animated: true }));
   };

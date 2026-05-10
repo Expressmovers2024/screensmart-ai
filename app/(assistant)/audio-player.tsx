@@ -4,6 +4,7 @@ import { Pressable, ScrollView, Text, View } from "react-native";
 import { FloatingPlaybackControls, MiniPlayer, VoiceSelector } from "@/components/audio";
 import { PrimaryButton, ScreenCard } from "@/components/ui";
 import { useCurrentSession } from "@/hooks/useCurrentSession";
+import { storageService } from "@/services/storage";
 import { ttsService, type PlaybackSpeed, type TtsVoice } from "@/services/tts";
 import { usePlaybackStore } from "@/store/playbackStore";
 
@@ -93,12 +94,32 @@ export default function AudioPlayerRoute() {
     });
 
     setStatus(nextState);
+    void storageService.saveAudioEvent({
+      id: `${currentPlaybackSession.id}-play-${Date.now()}`,
+      eventType: nextState,
+      playbackSessionId: currentPlaybackSession.id,
+      progress: currentPlaybackSession.progress,
+      sessionId: currentPlaybackSession.sourceSessionId,
+      metadata: {
+        speed: currentPlaybackSession.speed,
+        voiceId: currentPlaybackSession.voiceId
+      }
+    });
   };
 
   const pause = async () => {
     const nextState = await ttsService.pause();
 
     setStatus(nextState);
+    if (currentPlaybackSession) {
+      void storageService.saveAudioEvent({
+        id: `${currentPlaybackSession.id}-pause-${Date.now()}`,
+        eventType: nextState,
+        playbackSessionId: currentPlaybackSession.id,
+        progress: currentPlaybackSession.progress,
+        sessionId: currentPlaybackSession.sourceSessionId
+      });
+    }
   };
 
   const stop = async () => {
@@ -109,6 +130,15 @@ export default function AudioPlayerRoute() {
       progress: 0,
       status: nextState
     });
+    if (currentPlaybackSession) {
+      void storageService.saveAudioEvent({
+        id: `${currentPlaybackSession.id}-stop-${Date.now()}`,
+        eventType: nextState,
+        playbackSessionId: currentPlaybackSession.id,
+        progress: 0,
+        sessionId: currentPlaybackSession.sourceSessionId
+      });
+    }
   };
 
   const seek = (nextProgress: number) => {
