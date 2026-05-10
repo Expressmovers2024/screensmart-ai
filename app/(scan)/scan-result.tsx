@@ -1,4 +1,5 @@
 import { useLocalSearchParams } from "expo-router";
+import { useRouter } from "expo-router";
 import { Image, StyleSheet, Text, View } from "react-native";
 
 import { AppButton, AppScreen, Card, ScreenSection } from "../../src/components/ui";
@@ -6,6 +7,7 @@ import { routes } from "../../src/navigation/routes";
 import { colors, radius, spacing, typography } from "../../src/theme/tokens";
 
 export default function ScanResultRoute() {
+  const router = useRouter();
   const params = useLocalSearchParams<{
     confidence?: string;
     extractedText?: string;
@@ -13,6 +15,19 @@ export default function ScanResultRoute() {
   }>();
   const extractedText = params.extractedText ?? "OCR output preview will appear here after uploading an image.";
   const confidence = params.confidence ? Math.round(Number(params.confidence) * 100) : null;
+  const summary = "Summary generation is not connected yet. This screen now receives OCR placeholder text from the upload flow.";
+
+  const openTalkBackChat = () => {
+    router.push({
+      pathname: routes.talkbackChat,
+      params: {
+        confidence: confidence ? String(confidence) : undefined,
+        extractedText,
+        screenTitle: "Latest scan result",
+        summary
+      }
+    });
+  };
 
   return (
     <AppScreen
@@ -25,9 +40,7 @@ export default function ScanResultRoute() {
         </Card>
       ) : null}
       <Card eyebrow="AI summary" title="Plain-language explanation">
-        <Text style={styles.summary}>
-          Summary generation is not connected yet. This screen now receives OCR placeholder text from the upload flow.
-        </Text>
+        <Text style={styles.summary}>{summary}</Text>
       </Card>
       <Card title="Extracted text">
         <View style={styles.textBlock}>
@@ -44,7 +57,7 @@ export default function ScanResultRoute() {
           ]}
         />
         <AppButton label="Listen to result" href={routes.audioPlayer} />
-        <AppButton label="Ask TalkBack" href={routes.talkbackChat} variant="secondary" />
+        <AppButton label="Ask TalkBack" onPress={openTalkBackChat} variant="secondary" />
       </Card>
     </AppScreen>
   );
