@@ -5,7 +5,7 @@ import { Image, ScrollView, Text, View } from "react-native";
 
 import { LoadingState, PrimaryButton, ReadableTextBlock, ScreenCard } from "@/components/ui";
 import { routes } from "@/constants/routes";
-import { placeholderOcrService, type OcrProcessingStatus } from "@/services/ocr";
+import { ocrService, type OcrProcessingStatus } from "@/services/ocr";
 import { useSessionStore } from "@/store/sessionStore";
 import type { OcrResult, UploadedScreenshot } from "@/types/screenSession";
 import { createId } from "@/utils/createId";
@@ -16,9 +16,12 @@ export default function UploadScreenshotRoute() {
   const [image, setImage] = useState<UploadedScreenshot | null>(null);
   const [ocrResult, setOcrResult] = useState<OcrResult | null>(null);
   const [status, setStatus] = useState<OcrProcessingStatus>("idle");
+  const [progress, setProgress] = useState(0);
   const [statusMessage, setStatusMessage] = useState("Choose a screenshot from your gallery to begin.");
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
   const pickImage = async () => {
+    setErrorMessage(null);
     setStatusMessage("Requesting gallery access...");
 
     const permission = await ImagePicker.requestMediaLibraryPermissionsAsync();
@@ -51,13 +54,24 @@ export default function UploadScreenshotRoute() {
 
     setImage(selectedImage);
     setOcrResult(null);
-    setStatus("processing");
-    setStatusMessage("ScreenSmart is running placeholder OCR...");
+    await processImage(selectedImage, sessionId);
+  };
+
+  const processImage = async (selectedImage: UploadedScreenshot, sessionId = createId("screen-session")) => {
+    setErrorMessage(null);
+    setProgress(0);
+    setStatus("preprocessing");
+    setStatusMessage("Preparing screenshot for OCR...");
 
     try {
-      const ocr = await placeholderOcrService.extractText({
+      const ocr = await ocrService.extractText({
         image: selectedImage,
-        sessionId
+        sessionId,
+        onProgress: (event) => {
+          setStatus(event.status);
+          setProgress(event.progress);
+          setStatusMessage(event.message);
+        }
       });
 
       setOcrResult(ocr);
@@ -65,14 +79,28 @@ export default function UploadScreenshotRoute() {
         id: sessionId,
         createdAt: new Date().toISOString(),
         ocr,
-        screenshot: selectedImage
+        screenshot: ocr.sourceImage
       });
       setStatus("complete");
-      setStatusMessage("Mock OCR complete. Review the extracted text below.");
-    } catch {
+      setProgress(1);
+      setImage(ocr.sourceImage);
+      setStatusMessage("OCR complete. Review the extracted text below.");
+    } catch (error) {
+      const message = error instanceof Error ? error.message : "OCR processing failed. Try another screenshot.";
+
       setStatus("error");
-      setStatusMessage("OCR processing failed. Try another screenshot.");
+      setErrorMessage(message);
+      setStatusMessage("OCR scan failed.");
     }
+  };
+
+  const retryScan = async () => {
+    if (!image) {
+      return;
+    }
+
+    setOcrResult(null);
+    await processImage(image);
   };
 
   const openOcrResult = () => {
@@ -87,7 +115,7 @@ export default function UploadScreenshotRoute() {
         <Text className="text-xs font-black uppercase tracking-[2px] text-electric">OCR intake</Text>
         <Text className="mt-3 text-4xl font-black leading-tight text-white">Upload screenshot</Text>
         <Text className="mt-4 text-base leading-7 text-slate-300">
-          Select a screenshot from your gallery, preview it, and run placeholder OCR in a service-isolated flow.
+          Select a screenshot from your gallery, preview it, and run real on-device OCR through a provider-based service.
         </Text>
       </View>
 
@@ -115,17 +143,38 @@ export default function UploadScreenshotRoute() {
         {status === "processing" ? (
           <LoadingState
             title="Processing screenshot"
-            message="Running mock OCR extraction. Real OCR will connect behind services/ocr later."
+            message={statusMessage}
+            progress={progress}
           />
         ) : null}
 
-        <ScreenCard eyebrow="Mock OCR" title="Extracted text preview">
+        {status === "preprocessing" ? (
+          <LoadingState
+            title="Preparing image"
+            message={statusMessage}
+            progress={progress}
+          />
+        ) : null}
+
+        <ScreenCard eyebrow="OCR output" title="Extracted text preview">
           <ReadableTextBlock text={ocrResult?.extractedText ?? "Extracted text will appear here after OCR processing."} />
           {ocrResult ? (
             <Text className="text-xs font-black uppercase tracking-[1.5px] text-slate-400">
               Confidence {Math.round(ocrResult.confidence * 100)}% • {ocrResult.provider}
             </Text>
           ) : null}
+          {errorMessage ? (
+            <View className="rounded-3xl border border-red-400/30 bg-red-500/10 p-4">
+              <Text className="text-base font-bold leading-6 text-red-100">{errorMessage}</Text>
+            </View>
+          ) : null}
+          <View className="rounded-3xl border border-white/10 bg-white/5 p-4">
+            <Text className="text-sm font-black uppercase tracking-[1.5px] text-mint">Improve scan placeholder</Text>
+            <Text className="mt-2 text-base leading-6 text-slate-300">
+              For better OCR, crop around the screen, avoid glare, and use a high-resolution screenshot.
+            </Text>
+          </View>
+          <PrimaryButton disabled={!image || status === "processing" || status === "preprocessing"} label="Retry scan" onPress={retryScan} variant="secondary" />
           <PrimaryButton disabled={!ocrResult} label="Open OCR result" onPress={openOcrResult} />
         </ScreenCard>
       </View>

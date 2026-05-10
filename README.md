@@ -46,8 +46,8 @@ The upload and OCR routes now include the first MVP flow:
 
 - gallery image upload with Expo Image Picker
 - uploaded image preview
-- mock OCR loading state
-- placeholder OCR extraction through `services/ocr/`
+- OCR preprocessing/loading progress
+- provider-based OCR extraction through `services/ocr/` using free on-device ML Kit where available
 - readable OCR result layout
 - copy extracted text
 - save current OCR session to local Zustand library state

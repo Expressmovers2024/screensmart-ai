@@ -1,17 +1,5 @@
-export type UploadedScreenshot = {
-  uri: string;
-  fileName?: string | null;
-  width?: number;
-  height?: number;
-};
-
-export type OcrResult = {
-  id: string;
-  extractedText: string;
-  confidence: number;
-  provider: "placeholder";
-  processedAt: string;
-};
+export type { UploadedScreenshot } from "@/services/ocr";
+export type OcrResult = import("@/services/ocr").OcrExtractionResponse;
 
 export type ScreenSession = {
   id: string;
