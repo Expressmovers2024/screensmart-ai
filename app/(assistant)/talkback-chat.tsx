@@ -63,6 +63,7 @@ export default function TalkBackChatRoute() {
   const [microphoneStatus, setMicrophoneStatus] = useState("Microphone placeholder");
   const [hasLoadedStoredMessages, setHasLoadedStoredMessages] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  const [fallbackMessage, setFallbackMessage] = useState<string | null>(null);
   const [lastFailedQuestion, setLastFailedQuestion] = useState<string | null>(null);
   const ocrContext = useMemo(
     () =>
@@ -141,6 +142,7 @@ export default function TalkBackChatRoute() {
 
     setDraft("");
     setErrorMessage(null);
+    setFallbackMessage(null);
     setLastFailedQuestion(null);
     appendChatMessage(session.id, userMessage);
     void storageService.saveAiMessage(userMessage, session.id);
@@ -156,6 +158,11 @@ export default function TalkBackChatRoute() {
 
       appendChatMessage(session.id, response);
       void storageService.saveAiMessage(response, session.id);
+      if (response.body.includes("_AI proxy fallback used:")) {
+        setFallbackMessage(
+          "The Supabase AI proxy was unavailable or returned an error, so TalkBack showed the mock fallback response."
+        );
+      }
       requestAnimationFrame(() => scrollRef.current?.scrollToEnd({ animated: true }));
     } catch (error) {
       setLastFailedQuestion(question);
@@ -216,6 +223,27 @@ export default function TalkBackChatRoute() {
                 }
               }}
             />
+          ) : null}
+
+          {fallbackMessage ? (
+            <ScreenCard eyebrow="AI proxy fallback" title="Using mock TalkBack response">
+              <Text className="text-base leading-7 text-amber-100">
+                {fallbackMessage} Check `EXPO_PUBLIC_AI_PROXY_URL`, the deployed function, and the server-side
+                `OPENROUTER_API_KEY`, then retry.
+              </Text>
+              <PrimaryButton
+                label="Retry last question"
+                onPress={() => {
+                  const latestUserMessage = [...chatHistory].reverse().find((message) => message.role === "user");
+
+                  if (latestUserMessage) {
+                    void sendMessage(latestUserMessage.body);
+                  } else {
+                    setFallbackMessage(null);
+                  }
+                }}
+              />
+            </ScreenCard>
           ) : null}
 
           <ScreenCard eyebrow="Ask About Screen" title="Quick prompts">

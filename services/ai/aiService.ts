@@ -97,8 +97,8 @@ async function generateForSession(input: {
 
     return {
       ...fallback,
-      content: `${fallback.content}\n\n_OpenRouter fallback used: ${
-        error instanceof Error ? error.message : "provider unavailable"
+      content: `${fallback.content}\n\n_AI proxy fallback used: ${
+        error instanceof Error ? error.message : "proxy unavailable"
       }_`,
       fallbackUsed: true
     } satisfies AiResponse;

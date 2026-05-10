@@ -161,6 +161,16 @@ export default function SummaryRoute() {
           </ScreenCard>
         ) : null}
 
+        {response?.fallbackUsed ? (
+          <ScreenCard eyebrow="AI proxy fallback" title="Using mock AI response">
+            <Text className="text-base leading-7 text-amber-100">
+              The Supabase AI proxy was unavailable or returned an error, so ScreenSmart showed the mock fallback response.
+              Check `EXPO_PUBLIC_AI_PROXY_URL`, the deployed function, and the server-side `OPENROUTER_API_KEY`, then retry.
+            </Text>
+            <PrimaryButton label="Retry through AI proxy" onPress={() => generate(lastTask)} />
+          </ScreenCard>
+        ) : null}
+
         <ScreenCard eyebrow="Markdown-safe preview" title="AI response">
           <ReadableTextBlock text={response?.content ?? "Choose an AI action to generate a response."} />
           {response ? (

@@ -229,6 +229,102 @@ The function includes:
 - normalized `content`, `model`, `usage`, and `finishReason` response fields
 - JSON error responses without returning provider secrets
 
+## Live AI proxy MVP testing
+
+Use these steps to verify the existing summary and TalkBack flows against the
+Supabase `ai-proxy` function.
+
+### Local Supabase function
+
+1. Create `supabase/.env.local` with server-only values:
+
+   ```bash
+   OPENROUTER_API_KEY=your-openrouter-key
+   APP_URL=http://localhost:8081
+   OPENROUTER_DEFAULT_MODEL=deepseek/deepseek-chat-v3.1:free
+   ```
+
+2. Start Supabase and serve the function:
+
+   ```bash
+   npx supabase start
+   npx supabase functions serve ai-proxy --env-file ./supabase/.env.local
+   ```
+
+3. Set the Expo app env value in `.env`:
+
+   ```bash
+   EXPO_PUBLIC_AI_PROXY_URL=http://127.0.0.1:54321/functions/v1/ai-proxy
+   ```
+
+4. Restart Expo after changing env values:
+
+   ```bash
+   npm start -- --clear
+   ```
+
+### Deployed Supabase function
+
+1. Deploy the function:
+
+   ```bash
+   npx supabase functions deploy ai-proxy
+   ```
+
+2. Store secrets in Supabase, not in the Expo app:
+
+   ```bash
+   npx supabase secrets set OPENROUTER_API_KEY=your-openrouter-key
+   npx supabase secrets set APP_URL=https://screensmart.ai
+   npx supabase secrets set OPENROUTER_DEFAULT_MODEL=deepseek/deepseek-chat-v3.1:free
+   ```
+
+3. Set the deployed function URL in the Expo app `.env`:
+
+   ```bash
+   EXPO_PUBLIC_AI_PROXY_URL=https://<project-ref>.supabase.co/functions/v1/ai-proxy
+   ```
+
+4. Restart Expo:
+
+   ```bash
+   npm start -- --clear
+   ```
+
+### Expo app env variables
+
+Only expose the proxy URL and public model names to Expo:
+
+```bash
+EXPO_PUBLIC_AI_PROXY_URL=https://<project-ref>.supabase.co/functions/v1/ai-proxy
+EXPO_PUBLIC_OPENROUTER_SUMMARY_MODELS=deepseek/deepseek-chat-v3.1:free,qwen/qwen3-235b-a22b:free,google/gemini-2.0-flash-001
+EXPO_PUBLIC_OPENROUTER_TALKBACK_MODELS=google/gemini-2.0-flash-001,deepseek/deepseek-chat-v3.1:free,qwen/qwen3-235b-a22b:free
+```
+
+Never add `OPENROUTER_API_KEY` or any provider secret to an `EXPO_PUBLIC_*`
+variable.
+
+### Test AI summaries
+
+1. Start the app with `EXPO_PUBLIC_AI_PROXY_URL` configured.
+2. Upload a screenshot and complete OCR.
+3. Open **AI summary**.
+4. Tap **Generate Short Summary**.
+5. Confirm the response metadata shows `openrouter` and one of the routed
+   models instead of `placeholder`.
+6. Temporarily stop the local function or remove `EXPO_PUBLIC_AI_PROXY_URL`,
+   restart Expo, and confirm the UI shows **AI proxy fallback** while still
+   displaying a mock response.
+
+### Test TalkBack
+
+1. Complete OCR for a screenshot.
+2. Open **Ask TalkBack follow-up**.
+3. Ask a question such as `What does this screen mean?`.
+4. Confirm the response is grounded in the OCR text.
+5. Confirm proxy failures show **AI proxy fallback** with a retry button and do
+   not block the chat flow.
+
 The proxy may return either an OpenRouter-compatible chat-completions response or a normalized response:
 
 ```json
