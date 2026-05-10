@@ -7,7 +7,7 @@ import { PrimaryButton, ReadableTextBlock, ScreenCard } from "@/components/ui";
 import { routes } from "@/constants/routes";
 import { useChatHistory } from "@/hooks/useChatHistory";
 import { useCurrentSession } from "@/hooks/useCurrentSession";
-import { aiChatService, createOcrContext } from "@/services/ai";
+import { aiService, createOcrContext } from "@/services/ai";
 import { useSessionStore } from "@/store/sessionStore";
 import type { ChatMessage } from "@/types/chat";
 import type { ScreenSession } from "@/types/screenSession";
@@ -113,13 +113,13 @@ export default function TalkBackChatRoute() {
     setIsThinking(true);
     requestAnimationFrame(() => scrollRef.current?.scrollToEnd({ animated: true }));
 
-    const response = await aiChatService.answerQuestion({
-      context: ocrContext,
+    const response = await aiService.answerQuestion({
       history: nextMessages,
-      question
+      question,
+      session
     });
 
-    appendChatMessage(session.id, response.message);
+    appendChatMessage(session.id, response);
     setIsThinking(false);
     requestAnimationFrame(() => scrollRef.current?.scrollToEnd({ animated: true }));
   };

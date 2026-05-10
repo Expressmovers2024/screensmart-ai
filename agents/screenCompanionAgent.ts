@@ -1,10 +1,11 @@
 import { placeholderAiService } from "@/services/ai";
+import type { AiResponse } from "@/services/ai";
 import type { ChatMessage } from "@/types/chat";
 import type { ScreenSession } from "@/types/screenSession";
 
 export type ScreenCompanionAgent = {
-  summarizeCurrentScreen: (session: ScreenSession) => Promise<string>;
-  explainCurrentScreen: (session: ScreenSession) => Promise<string>;
+  summarizeCurrentScreen: (session: ScreenSession) => Promise<AiResponse>;
+  explainCurrentScreen: (session: ScreenSession) => Promise<AiResponse>;
   answerScreenQuestion: (input: {
     question: string;
     session: ScreenSession;

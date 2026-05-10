@@ -53,8 +53,11 @@ The upload and OCR routes now include the first MVP flow:
 - save current OCR session to local Zustand library state
 - audio reader system with play, pause, stop, skip forward/back, playback speed, estimated reading time, progress slider, placeholder voices, mini-player, floating controls, persisted resume state, queue/background placeholders, and sentence highlight placeholder
 - TalkBack AI chat grounded in the current OCR session with persisted history, timestamps, typing state, microphone placeholder, quick prompts, and contextual mock responses
+- OpenRouter-ready AI provider architecture with fallback provider, typed responses, prompt/routing modules, token usage placeholders, OCR grounding, and context chunking
 
-Live recording, browser extensions, desktop apps, advanced AI orchestration, payment systems, production OCR, production AI processing, real TTS audio, and Supabase-backed persistence are intentionally left for later implementation.
+Copy `.env.example` to configure OpenRouter for local builds. Do not hardcode secrets; production mobile builds should use a secure backend or edge-function proxy for provider credentials.
+
+Live recording, browser extensions, desktop apps, advanced AI orchestration, payment systems, real TTS audio, and Supabase-backed persistence are intentionally left for later implementation.
 
 ## Development
 

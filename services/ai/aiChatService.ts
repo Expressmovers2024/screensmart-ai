@@ -20,24 +20,41 @@ export function createOcrContext(input: {
 
 export const aiChatService = {
   async answerQuestion({ question, context, history }: AiChatRequest): Promise<AiChatResponse> {
-    await new Promise((resolve) => setTimeout(resolve, 650));
-
     const referencedText = context.extractedText.slice(0, 420);
-    const message: ChatMessage = {
+    const aiResponse: AiResponse = {
       id: createId("assistant-message"),
-      role: "assistant",
-      body: buildContextualResponse({
+      content: buildContextualResponse({
         category: context.category,
         history,
         question,
         referencedText,
         confidence: context.confidence
       }),
+      createdAt: new Date().toISOString(),
+      fallbackUsed: true,
+      finishReason: "stop",
+      format: "markdown",
+      model: "screensmart-mock-model",
+      provider: "placeholder",
+      streamed: false,
+      task: "talkback_answer",
+      usage: {
+        estimated: true,
+        promptTokens: Math.ceil(context.extractedText.length / 4),
+        completionTokens: 120,
+        totalTokens: Math.ceil(context.extractedText.length / 4) + 120
+      }
+    };
+    const message: ChatMessage = {
+      id: aiResponse.id,
+      role: "assistant",
+      body: aiResponse.content,
       contextSessionId: context.sessionId,
-      createdAt: new Date().toISOString()
+      createdAt: aiResponse.createdAt
     };
 
     return {
+      aiResponse,
       contextCategory: context.category,
       message,
       referencedText
