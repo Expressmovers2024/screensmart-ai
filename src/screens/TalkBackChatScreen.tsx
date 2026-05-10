@@ -42,11 +42,13 @@ export function TalkBackChatScreen({ navigate, result }: TalkBackChatScreenProps
       body: question
     };
 
+    const nextMessages = [...messages, userMessage];
+
     setDraft("");
     setIsThinking(true);
-    setMessages((current) => [...current, userMessage]);
+    setMessages(nextMessages);
 
-    const answer = await aiService.answerQuestion(question, [...messages, userMessage]);
+    const answer = await aiService.answerQuestion(question, nextMessages);
     setMessages((current) => [...current, answer]);
     setIsThinking(false);
   };

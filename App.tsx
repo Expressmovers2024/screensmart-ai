@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useState } from "react";
 import { StatusBar, StyleSheet, View } from "react-native";
 
 import { BottomNav } from "./src/components/BottomNav";
@@ -21,7 +21,6 @@ export default function App() {
   const [currentScreen, setCurrentScreen] = useState<ScreenKey>("onboarding");
   const [scanResult, setScanResult] = useState<ScanResult>(demoScanResult);
   const [isScanning, setIsScanning] = useState(false);
-  const [lastSavedScanId, setLastSavedScanId] = useState<string | null>(null);
 
   const navigate: Navigate = (screen) => setCurrentScreen(screen);
 
@@ -39,27 +38,29 @@ export default function App() {
       sourceType: "demo"
     };
 
-    const ocr = await ocrService.extractText(source);
-    const ai = await aiService.summarizeScreen(ocr.text);
+    try {
+      const ocr = await ocrService.extractText(source);
+      const ai = await aiService.summarizeScreen(ocr.text);
 
-    setScanResult({
-      id: `scan-${Date.now()}`,
-      extractedText: ocr.text,
-      screenshotName: source.name,
-      ...ai
-    });
-    setIsScanning(false);
-    navigate("result");
+      setScanResult({
+        id: `scan-${Date.now()}`,
+        extractedText: ocr.text,
+        screenshotName: source.name,
+        ...ai
+      });
+      navigate("result");
+    } finally {
+      setIsScanning(false);
+    }
   };
 
   const saveCurrentScan = async () => {
-    const saved = await supabaseService.saveScan(scanResult);
+    await supabaseService.saveScan(scanResult);
 
-    setLastSavedScanId(saved.id);
     navigate("library");
   };
 
-  const screen = useMemo(() => {
+  const renderScreen = () => {
     switch (currentScreen) {
       case "onboarding":
         return <OnboardingScreen navigate={navigate} />;
@@ -82,12 +83,12 @@ export default function App() {
       default:
         return <HomeScreen navigate={navigate} />;
     }
-  }, [currentScreen, isScanning, lastSavedScanId, scanResult]);
+  };
 
   return (
     <View style={styles.root}>
       <StatusBar backgroundColor={colors.background} barStyle="dark-content" />
-      {screen}
+      {renderScreen()}
       {currentScreen !== "onboarding" ? <BottomNav currentScreen={currentScreen} navigate={navigate} /> : null}
     </View>
   );

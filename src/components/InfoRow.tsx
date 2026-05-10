@@ -28,6 +28,7 @@ const styles = StyleSheet.create({
   row: {
     backgroundColor: colors.background,
     borderRadius: 18,
+    flex: 1,
     gap: spacing.xs,
     padding: spacing.md
   },

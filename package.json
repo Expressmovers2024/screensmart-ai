@@ -8,7 +8,6 @@
     "start": "expo start",
     "android": "expo start --android",
     "ios": "expo start --ios",
-    "web": "expo start --web",
     "typecheck": "tsc --noEmit"
   },
   "repository": {
@@ -29,6 +28,10 @@
   },
   "devDependencies": {
     "@types/react": "^19.2.14",
+    "babel-preset-expo": "~55.0.8",
     "typescript": "^5.9.3"
+  },
+  "overrides": {
+    "postcss": "8.5.14"
   }
 }
