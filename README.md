@@ -42,7 +42,15 @@ Top-level architecture:
 - `types/`
 - `constants/`
 
-The first task is foundation only. Route files are intentionally lightweight shells while the service-oriented architecture, state layer, styling system, and typed module boundaries are established.
+The upload and OCR routes now include the first MVP flow:
+
+- gallery image upload with Expo Image Picker
+- uploaded image preview
+- mock OCR loading state
+- placeholder OCR extraction through `services/ocr/`
+- readable OCR result layout
+- copy extracted text
+- save current OCR session to local Zustand library state
 
 Live recording, browser extensions, desktop apps, advanced AI orchestration, payment systems, production OCR, production AI processing, real TTS audio, and Supabase-backed persistence are intentionally left for later implementation.
 

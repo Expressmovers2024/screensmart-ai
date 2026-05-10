@@ -6,9 +6,11 @@ export type UploadedScreenshot = {
 };
 
 export type OcrResult = {
+  id: string;
   extractedText: string;
   confidence: number;
   provider: "placeholder";
+  processedAt: string;
 };
 
 export type ScreenSession = {
@@ -17,4 +19,5 @@ export type ScreenSession = {
   ocr?: OcrResult;
   summary?: string;
   createdAt: string;
+  savedAt?: string;
 };

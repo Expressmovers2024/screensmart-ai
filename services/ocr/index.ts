@@ -1,2 +1,2 @@
 export { placeholderOcrService } from "./placeholderOcrService";
-export type { OcrService } from "./types";
+export type { OcrExtractionRequest, OcrExtractionResponse, OcrProcessingStatus, OcrService } from "./types";
