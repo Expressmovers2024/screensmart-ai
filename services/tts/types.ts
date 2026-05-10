@@ -13,7 +13,47 @@ export type TtsPlaybackOptions = {
   voiceId: string;
 };
 
+export type AudioReaderChunk = {
+  id: string;
+  index: number;
+  text: string;
+  estimatedSeconds: number;
+};
+
+export type PlaybackQueueItem = {
+  id: string;
+  sourceSessionId?: string;
+  title: string;
+};
+
+export type TtsPlaybackSession = {
+  id: string;
+  sourceSessionId?: string;
+  text: string;
+  chunks: AudioReaderChunk[];
+  currentChunkIndex: number;
+  progress: number;
+  status: PlaybackState;
+  speed: PlaybackSpeed;
+  voiceId: string;
+  estimatedSeconds: number;
+  backgroundPlaybackEnabled: boolean;
+  queue: PlaybackQueueItem[];
+  updatedAt: string;
+};
+
+export type CreatePlaybackSessionInput = {
+  sourceSessionId?: string;
+  text: string;
+  voiceId: string;
+  speed: PlaybackSpeed;
+};
+
 export type TtsService = {
+  createPlaybackSession: (input: CreatePlaybackSessionInput) => TtsPlaybackSession;
+  splitIntoReadableChunks: (text: string) => AudioReaderChunk[];
+  estimateReadingTime: (text: string, speed: PlaybackSpeed) => number;
+  prepareBackgroundPlayback: (session: TtsPlaybackSession) => Promise<{ enabled: false; reason: string }>;
   speak: (text: string, options: TtsPlaybackOptions) => Promise<PlaybackState>;
   pause: () => Promise<PlaybackState>;
   stop: () => Promise<PlaybackState>;

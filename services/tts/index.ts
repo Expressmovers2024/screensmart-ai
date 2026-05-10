@@ -1,2 +1,13 @@
 export { placeholderTtsService } from "./placeholderTtsService";
-export type { PlaybackSpeed, PlaybackState, TtsPlaybackOptions, TtsService, TtsVoice } from "./types";
+export { ttsService } from "./ttsService";
+export type {
+  AudioReaderChunk,
+  CreatePlaybackSessionInput,
+  PlaybackQueueItem,
+  PlaybackSpeed,
+  PlaybackState,
+  TtsPlaybackOptions,
+  TtsPlaybackSession,
+  TtsService,
+  TtsVoice
+} from "./types";
