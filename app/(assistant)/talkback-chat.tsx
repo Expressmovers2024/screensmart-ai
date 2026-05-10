@@ -28,8 +28,24 @@ const fallbackSession: ScreenSession = {
     confidence: 0.9,
     extractedText:
       "No active OCR session was found. Upload a screenshot first to ground TalkBack in real screen context.",
+    blocks: [
+      {
+        id: "fallback-block",
+        lines: [
+          {
+            id: "fallback-line",
+            text: "No active OCR session was found. Upload a screenshot first to ground TalkBack in real screen context."
+          }
+        ],
+        text: "No active OCR session was found. Upload a screenshot first to ground TalkBack in real screen context."
+      }
+    ],
     processedAt: new Date().toISOString(),
-    provider: "placeholder"
+    provider: "placeholder",
+    rawText: "No active OCR session was found. Upload a screenshot first to ground TalkBack in real screen context.",
+    sourceImage: {
+      uri: "placeholder://talkback"
+    }
   }
 };
 

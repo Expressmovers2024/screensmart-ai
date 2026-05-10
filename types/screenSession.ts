@@ -1,5 +1,7 @@
+import type { OcrExtractionResponse, UploadedScreenshot } from "@/services/ocr";
+
 export type { UploadedScreenshot } from "@/services/ocr";
-export type OcrResult = import("@/services/ocr").OcrExtractionResponse;
+export type OcrResult = OcrExtractionResponse;
 
 export type ScreenSession = {
   id: string;
