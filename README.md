@@ -32,9 +32,9 @@ Source structure:
 - `src/types`
 - `src/utils`
 
-The route files render mobile-first placeholder UI with rounded cards and large accessible buttons. The upload route uses Expo Image Picker, previews the selected image, and runs a mock OCR service from `src/services/ocr`.
+The route files render mobile-first placeholder UI with rounded cards and large accessible buttons. The upload route uses Expo Image Picker, previews the selected image, and runs a mock OCR service from `src/services/ocr`. The audio route includes mock text-to-speech playback controls backed by `src/services/tts`.
 
-Live recording, production OCR, AI processing, TTS, and Supabase integration are intentionally left for later implementation.
+Live recording, production OCR, AI processing, real TTS audio, and Supabase integration are intentionally left for later implementation.
 
 ## Development
 
