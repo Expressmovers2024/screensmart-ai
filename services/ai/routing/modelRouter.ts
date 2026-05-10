@@ -1,33 +1,148 @@
 import type { AiProviderId, AiTask } from "../types";
 
+export type AiModelCandidate = {
+  id: string;
+  label: string;
+  vendor: "deepseek" | "qwen" | "google" | "mistral" | "placeholder" | "other";
+  priceTier: "free" | "low-cost" | "mock";
+};
+
+export type AiModelRoute = {
+  primary: string;
+  fallbacks: string[];
+};
+
+const LOW_COST_OPENROUTER_MODELS: AiModelCandidate[] = [
+  {
+    id: "deepseek/deepseek-chat-v3.1:free",
+    label: "DeepSeek Chat free",
+    priceTier: "free",
+    vendor: "deepseek"
+  },
+  {
+    id: "qwen/qwen3-235b-a22b:free",
+    label: "Qwen3 free",
+    priceTier: "free",
+    vendor: "qwen"
+  },
+  {
+    id: "google/gemini-2.0-flash-001",
+    label: "Gemini 2.0 Flash low-cost",
+    priceTier: "low-cost",
+    vendor: "google"
+  },
+  {
+    id: "mistralai/mistral-7b-instruct:free",
+    label: "Mistral 7B free",
+    priceTier: "free",
+    vendor: "mistral"
+  }
+];
+
 const DEFAULT_MODELS: Record<AiProviderId, string> = {
   anthropic: "claude-3-5-haiku-latest",
   gemini: "gemini-1.5-flash",
   ollama: "llama3.1",
   openai: "gpt-4o-mini",
-  openrouter: "openai/gpt-4o-mini",
+  openrouter: LOW_COST_OPENROUTER_MODELS[0].id,
   placeholder: "screensmart-mock-model"
 };
 
+const DEFAULT_OPENROUTER_ROUTES: Record<AiTask, string[]> = {
+  detailed_summary: [
+    "qwen/qwen3-235b-a22b:free",
+    "deepseek/deepseek-chat-v3.1:free",
+    "google/gemini-2.0-flash-001"
+  ],
+  explain: [
+    "deepseek/deepseek-chat-v3.1:free",
+    "qwen/qwen3-235b-a22b:free",
+    "google/gemini-2.0-flash-001"
+  ],
+  key_points: [
+    "qwen/qwen3-235b-a22b:free",
+    "mistralai/mistral-7b-instruct:free",
+    "deepseek/deepseek-chat-v3.1:free"
+  ],
+  short_summary: [
+    "deepseek/deepseek-chat-v3.1:free",
+    "qwen/qwen3-235b-a22b:free",
+    "google/gemini-2.0-flash-001"
+  ],
+  talkback_answer: [
+    "google/gemini-2.0-flash-001",
+    "deepseek/deepseek-chat-v3.1:free",
+    "qwen/qwen3-235b-a22b:free"
+  ]
+};
+
+const TASK_ENV_KEYS: Record<AiTask, string[]> = {
+  detailed_summary: ["EXPO_PUBLIC_OPENROUTER_DETAILED_SUMMARY_MODELS", "EXPO_PUBLIC_OPENROUTER_SUMMARY_MODELS"],
+  explain: ["EXPO_PUBLIC_OPENROUTER_EXPLAIN_MODELS"],
+  key_points: ["EXPO_PUBLIC_OPENROUTER_BULLET_MODELS"],
+  short_summary: ["EXPO_PUBLIC_OPENROUTER_SUMMARY_MODELS"],
+  talkback_answer: ["EXPO_PUBLIC_OPENROUTER_TALKBACK_MODELS"]
+};
+
 export function getModelForTask(providerId: AiProviderId, task: AiTask) {
-  const envModel =
-    process.env.EXPO_PUBLIC_OPENROUTER_MODEL ||
-    process.env.OPENROUTER_MODEL ||
-    process.env.EXPO_PUBLIC_AI_MODEL;
-
-  if (providerId === "openrouter" && envModel) {
-    return envModel;
-  }
-
-  if (task === "detailed_summary" && providerId === "openrouter") {
-    return process.env.EXPO_PUBLIC_OPENROUTER_DETAILED_MODEL || DEFAULT_MODELS.openrouter;
+  if (providerId === "openrouter") {
+    return getModelRouteForTask(providerId, task).primary;
   }
 
   return DEFAULT_MODELS[providerId];
 }
 
+export function getModelRouteForTask(providerId: AiProviderId, task: AiTask): AiModelRoute {
+  if (providerId !== "openrouter") {
+    return {
+      fallbacks: [],
+      primary: DEFAULT_MODELS[providerId]
+    };
+  }
+
+  const models = getModelsForTask(task);
+
+  return {
+    fallbacks: models.slice(1),
+    primary: models[0]
+  };
+}
+
+export function getModelsForTask(task: AiTask) {
+  const configuredModels = readConfiguredModels(TASK_ENV_KEYS[task]);
+  const defaultModels = DEFAULT_OPENROUTER_ROUTES[task];
+
+  return dedupeModels([
+    ...configuredModels,
+    ...readConfiguredModels(["EXPO_PUBLIC_OPENROUTER_DEFAULT_MODELS", "EXPO_PUBLIC_OPENROUTER_MODEL"]),
+    ...defaultModels
+  ]);
+}
+
 export function getFallbackModel(providerId: AiProviderId) {
-  return providerId === "openrouter"
-    ? process.env.EXPO_PUBLIC_OPENROUTER_FALLBACK_MODEL || "meta-llama/llama-3.1-8b-instruct:free"
-    : DEFAULT_MODELS.placeholder;
+  if (providerId !== "openrouter") {
+    return DEFAULT_MODELS.placeholder;
+  }
+
+  return readConfiguredModels(["EXPO_PUBLIC_OPENROUTER_FALLBACK_MODELS", "EXPO_PUBLIC_OPENROUTER_FALLBACK_MODEL"])[0]
+    ?? "mistralai/mistral-7b-instruct:free";
+}
+
+export function listLowCostOpenRouterModels() {
+  return LOW_COST_OPENROUTER_MODELS;
+}
+
+function readConfiguredModels(envKeys: string[]) {
+  return envKeys.flatMap((key) => splitModels(process.env[key])).filter(Boolean);
+}
+
+function splitModels(value?: string) {
+  return (value ?? "")
+    .split(",")
+    .map((model) => model.trim())
+    .filter(Boolean);
+}
+
+function dedupeModels(models: string[]) {
+  return Array.from(new Set(models));
 }

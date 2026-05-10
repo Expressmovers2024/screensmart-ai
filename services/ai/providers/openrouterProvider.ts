@@ -1,10 +1,8 @@
 import { createId } from "@/utils/createId";
 
 import { SCREENSMART_SYSTEM_PROMPT } from "../prompts/screenPrompts";
-import { getFallbackModel, getModelForTask } from "../routing/modelRouter";
+import { getFallbackModel, getModelRouteForTask } from "../routing/modelRouter";
 import type { AiProvider, AiProviderRequest, AiResponse } from "../types";
-
-const OPENROUTER_URL = "https://openrouter.ai/api/v1/chat/completions";
 
 type OpenRouterChoice = {
   message?: {
@@ -24,19 +22,37 @@ type OpenRouterResponse = {
   };
 };
 
+type AiProxyResponse = Omit<OpenRouterResponse, "usage"> & {
+  content?: string;
+  finishReason?: string;
+  usage?: OpenRouterResponse["usage"] & {
+    completionTokens?: number;
+    estimated?: boolean;
+    promptTokens?: number;
+    totalTokens?: number;
+  };
+};
+
 export const openRouterProvider: AiProvider = {
   id: "openrouter",
   label: "OpenRouter",
   async generate(request: AiProviderRequest): Promise<AiResponse> {
-    const apiKey = getOpenRouterApiKey();
+    const proxyUrl = getAiProxyUrl();
 
-    if (!apiKey) {
-      throw new Error("OpenRouter API key is not configured.");
+    if (!proxyUrl) {
+      throw new Error("AI proxy endpoint is not configured.");
     }
 
-    const model = request.preferredModel || getModelForTask("openrouter", request.task);
-    const response = await fetch(OPENROUTER_URL, {
+    const modelRoute = request.preferredModels?.length
+      ? {
+          fallbacks: request.preferredModels.slice(1),
+          primary: request.preferredModels[0]
+        }
+      : getModelRouteForTask("openrouter", request.task);
+    const model = request.preferredModel || modelRoute.primary;
+    const response = await fetch(proxyUrl, {
       body: JSON.stringify({
+        fallbackModels: modelRoute.fallbacks,
         messages: [
           {
             role: "system",
@@ -52,43 +68,43 @@ export const openRouterProvider: AiProvider = {
           }
         ],
         model,
+        provider: "openrouter",
+        task: request.task,
         temperature: 0.2
       }),
       headers: {
-        Authorization: `Bearer ${apiKey}`,
         "Content-Type": "application/json",
-        "HTTP-Referer": process.env.EXPO_PUBLIC_APP_URL || "https://screensmart.ai",
-        "X-Title": "ScreenSmart AI"
+        "X-ScreenSmart-App": "mobile-mvp"
       },
       method: "POST"
     });
 
     if (!response.ok) {
-      throw new Error(`OpenRouter request failed with status ${response.status}.`);
+      throw new Error(`AI proxy request failed with status ${response.status}.`);
     }
 
-    const data = (await response.json()) as OpenRouterResponse;
-    const content = data.choices?.[0]?.message?.content?.trim();
+    const data = (await response.json()) as AiProxyResponse;
+    const content = normalizeContent(data);
 
     if (!content) {
-      throw new Error("OpenRouter returned an empty response.");
+      throw new Error("AI proxy returned an empty response.");
     }
 
     return {
       id: data.id || createId("ai-response"),
       content,
       createdAt: new Date().toISOString(),
-      finishReason: data.choices?.[0]?.finish_reason,
+      finishReason: data.finishReason || data.choices?.[0]?.finish_reason,
       format: "markdown",
       model: data.model || model,
       provider: "openrouter",
       streamed: false,
       task: request.task,
       usage: {
-        completionTokens: data.usage?.completion_tokens,
+        completionTokens: data.usage?.completionTokens ?? data.usage?.completion_tokens,
         estimated: !data.usage,
-        promptTokens: data.usage?.prompt_tokens,
-        totalTokens: data.usage?.total_tokens
+        promptTokens: data.usage?.promptTokens ?? data.usage?.prompt_tokens,
+        totalTokens: data.usage?.totalTokens ?? data.usage?.total_tokens
       }
     };
   },
@@ -106,6 +122,14 @@ export function getOpenRouterFallbackModel() {
   return getFallbackModel("openrouter");
 }
 
-function getOpenRouterApiKey() {
-  return process.env.EXPO_PUBLIC_OPENROUTER_API_KEY || process.env.OPENROUTER_API_KEY;
+function getAiProxyUrl() {
+  return process.env.EXPO_PUBLIC_AI_PROXY_URL || process.env.EXPO_PUBLIC_OPENROUTER_PROXY_URL;
+}
+
+function normalizeContent(data: AiProxyResponse) {
+  if (typeof data.content === "string") {
+    return data.content.trim();
+  }
+
+  return data.choices?.[0]?.message?.content?.trim();
 }

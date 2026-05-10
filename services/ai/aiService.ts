@@ -4,7 +4,7 @@ import { createId } from "@/utils/createId";
 
 import { openRouterProvider, placeholderAiProvider } from "./providers";
 import { buildScreenPrompt } from "./prompts/screenPrompts";
-import { getModelForTask } from "./routing/modelRouter";
+import { getModelRouteForTask } from "./routing/modelRouter";
 import { createOcrContext } from "./aiChatService";
 import { getSafeAiContext } from "./utils/chunkText";
 import type { AiProvider, AiProviderId, AiProviderRequest, AiResponse, AiService, AiTask } from "./types";
@@ -80,10 +80,12 @@ async function generateForSession(input: {
     question: input.question,
     task: input.task
   });
+  const modelRoute = getModelRouteForTask(activeProviderId, input.task);
   const request: AiProviderRequest = {
     context,
     history: input.history,
-    preferredModel: getModelForTask(activeProviderId, input.task),
+    preferredModel: modelRoute.primary,
+    preferredModels: [modelRoute.primary, ...modelRoute.fallbacks],
     prompt,
     task: input.task
   };

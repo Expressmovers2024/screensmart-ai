@@ -61,6 +61,7 @@ export type AiProviderRequest = {
   prompt: string;
   history?: ChatMessage[];
   preferredModel?: string;
+  preferredModels?: string[];
 };
 
 export type AiProvider = {

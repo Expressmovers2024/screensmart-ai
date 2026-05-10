@@ -58,7 +58,7 @@ The upload and OCR routes now include the first MVP flow:
 - future-ready agent contracts, reusable session context, provider descriptors, and service boundary documentation for later multi-agent/browser/desktop support
 - Supabase-ready storage architecture with typed database interfaces, mock local user state, local-first repository fallback, session cards, recent activity, notes, settings, and persistence for OCR sessions, AI messages, notes, and audio events
 
-Copy `.env.example` to configure OpenRouter for local builds. If no OpenRouter key is configured, the app falls back to the placeholder AI provider so the MVP flow remains testable. Do not hardcode secrets; production mobile builds should use a secure backend or edge-function proxy for provider credentials.
+Copy `.env.example` to configure the AI proxy URL and optional model routing for local builds. The mobile app never reads an OpenRouter API key directly; provider secrets must live in a backend or Supabase Edge Function. If no proxy URL is configured, the app falls back to the placeholder AI provider so the MVP flow remains testable.
 
 Live recording, browser extensions, desktop apps, advanced AI orchestration, payment systems, and Supabase-backed authenticated persistence are intentionally left for later implementation. Existing contracts only prepare those boundaries; they do not implement advanced systems.
 
@@ -90,7 +90,7 @@ npm run typecheck
    npm install
    ```
 
-2. Optional: copy `.env.example` to `.env` and fill in OpenRouter/Supabase values for local testing. The local MVP does not require these values because AI and storage have safe fallbacks.
+2. Optional: copy `.env.example` to `.env` and fill in the AI proxy/Supabase values for local testing. The local MVP does not require these values because AI and storage have safe fallbacks.
 
 3. Start the Expo dev server:
 
@@ -130,16 +130,58 @@ Use this checklist for the first complete ScreenSmart AI test pass:
 
 ## Mock fallback handling
 
-- AI defaults to OpenRouter when `EXPO_PUBLIC_OPENROUTER_API_KEY` is present.
-- If OpenRouter is not configured or returns an error, `aiService` returns a placeholder AI response and marks `fallbackUsed`.
+- AI defaults to the OpenRouter-compatible provider when `EXPO_PUBLIC_AI_PROXY_URL` is present.
+- The proxy should hold the real `OPENROUTER_API_KEY` server-side and forward requests to OpenRouter. Do not put provider API keys in `EXPO_PUBLIC_*` variables.
+- If the proxy is not configured or returns an error, `aiService` returns a placeholder AI response and marks `fallbackUsed`.
+- Model routing is task-based and configurable with comma-separated public model names:
+  - `EXPO_PUBLIC_OPENROUTER_SUMMARY_MODELS`
+  - `EXPO_PUBLIC_OPENROUTER_DETAILED_SUMMARY_MODELS`
+  - `EXPO_PUBLIC_OPENROUTER_BULLET_MODELS`
+  - `EXPO_PUBLIC_OPENROUTER_EXPLAIN_MODELS`
+  - `EXPO_PUBLIC_OPENROUTER_TALKBACK_MODELS`
+- Default routes prefer low-cost/free OpenRouter-compatible models from DeepSeek, Qwen, Gemini Flash, and Mistral.
 - Local MVP storage uses AsyncStorage through the storage abstraction when Supabase env vars are absent.
 - Supabase remains a query-ready architecture path, but real multi-user auth and RLS-backed persistence are not part of this MVP test pass.
 - TTS uses Expo Speech and falls back to built-in voice labels if no native voices are reported by the device.
 
+## AI proxy contract
+
+For real MVP AI responses, point `EXPO_PUBLIC_AI_PROXY_URL` at a backend or Supabase Edge Function that owns the OpenRouter secret. The mobile app sends this JSON shape:
+
+```json
+{
+  "provider": "openrouter",
+  "task": "short_summary",
+  "model": "deepseek/deepseek-chat-v3.1:free",
+  "fallbackModels": ["qwen/qwen3-235b-a22b:free", "google/gemini-2.0-flash-001"],
+  "temperature": 0.2,
+  "messages": [
+    { "role": "system", "content": "..." },
+    { "role": "user", "content": "..." }
+  ]
+}
+```
+
+The proxy may return either an OpenRouter-compatible chat-completions response or a normalized response:
+
+```json
+{
+  "id": "ai-response-id",
+  "content": "Summary text",
+  "model": "deepseek/deepseek-chat-v3.1:free",
+  "usage": {
+    "promptTokens": 100,
+    "completionTokens": 80,
+    "totalTokens": 180
+  },
+  "finishReason": "stop"
+}
+```
+
 ## Known MVP limitations
 
 - OCR requires the ML Kit native module; use a development build/simulator/device that includes native dependencies.
-- OpenRouter keys placed in `EXPO_PUBLIC_*` are suitable only for local MVP testing. Production provider calls should move behind a backend or edge-function proxy.
+- Real OpenRouter responses require a backend or edge-function proxy. The Expo client intentionally does not read provider API keys.
 - Local sessions, OCR text, chat messages, settings, and audio events are stored in AsyncStorage and are not encrypted.
 - Session screenshots are stored as local image URI metadata, not uploaded to durable cloud storage.
 - Microphone input is still a placeholder; TalkBack follow-up is typed text only.
