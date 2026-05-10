@@ -9,13 +9,18 @@ type AppButtonProps = {
   href?: Href;
   onPress?: () => void;
   variant?: "primary" | "secondary" | "ghost";
+  disabled?: boolean;
   style?: ViewStyle;
 };
 
-export function AppButton({ label, href, onPress, variant = "primary", style }: AppButtonProps) {
+export function AppButton({ label, href, onPress, variant = "primary", disabled = false, style }: AppButtonProps) {
   const router = useRouter();
 
   const handlePress = () => {
+    if (disabled) {
+      return;
+    }
+
     if (onPress) {
       onPress();
       return;
@@ -29,8 +34,10 @@ export function AppButton({ label, href, onPress, variant = "primary", style }: 
   return (
     <Pressable
       accessibilityRole="button"
+      accessibilityState={{ disabled }}
+      disabled={disabled}
       onPress={handlePress}
-      style={({ pressed }) => [styles.button, styles[variant], pressed && styles.pressed, style]}
+      style={({ pressed }) => [styles.button, styles[variant], disabled && styles.disabled, pressed && styles.pressed, style]}
     >
       <Text style={[styles.label, variant !== "primary" && styles.secondaryLabel]}>{label}</Text>
     </Pressable>
@@ -45,6 +52,9 @@ const styles = StyleSheet.create({
     minHeight: 56,
     paddingHorizontal: spacing.lg,
     paddingVertical: spacing.md
+  },
+  disabled: {
+    opacity: 0.5
   },
   ghost: {
     backgroundColor: "transparent"
