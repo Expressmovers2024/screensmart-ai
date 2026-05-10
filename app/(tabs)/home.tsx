@@ -1,14 +1,16 @@
 import { useCallback, useEffect, useState } from "react";
-import { useRouter } from "expo-router";
+import { useFocusEffect, useRouter } from "expo-router";
 import { ScrollView, Text, View } from "react-native";
 
 import { RecentActivityCard } from "@/components/session";
 import { EmptyState, LoadingState, PrimaryButton, RetryState, ScreenCard } from "@/components/ui";
 import { routes } from "@/constants/routes";
 import { storageService, type RecentActivity } from "@/services/storage";
+import { useSessionStore } from "@/store/sessionStore";
 
 export default function HomeRoute() {
   const router = useRouter();
+  const setCurrentSession = useSessionStore((state) => state.setCurrentSession);
   const [recentActivity, setRecentActivity] = useState<RecentActivity[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
@@ -29,6 +31,27 @@ export default function HomeRoute() {
   useEffect(() => {
     void loadRecentActivity();
   }, [loadRecentActivity]);
+
+  useFocusEffect(
+    useCallback(() => {
+      void loadRecentActivity();
+    }, [loadRecentActivity])
+  );
+
+  const openActivity = (activity: RecentActivity) => {
+    if (activity.type === "screen_session") {
+      setCurrentSession(activity.session);
+      router.push(routes.summary);
+      return;
+    }
+
+    if (activity.type === "note") {
+      router.push(routes.notes);
+      return;
+    }
+
+    router.push(routes.audioReader);
+  };
 
   return (
     <ScrollView className="flex-1 bg-ink" contentContainerClassName="px-6 pb-12 pt-14">
@@ -60,7 +83,11 @@ export default function HomeRoute() {
             />
           ) : null}
           {!isLoading && !errorMessage
-            ? recentActivity.slice(0, 6).map((activity) => <RecentActivityCard activity={activity} key={`${activity.type}-${activity.id}`} />)
+            ? recentActivity
+                .slice(0, 6)
+                .map((activity) => (
+                  <RecentActivityCard activity={activity} key={`${activity.type}-${activity.id}`} onPress={() => openActivity(activity)} />
+                ))
             : null}
         </ScreenCard>
       </View>

@@ -1,16 +1,22 @@
-import { Text, View } from "react-native";
+import { Pressable, Text, View } from "react-native";
 
 import type { ScreenSession } from "@/types/screenSession";
 
 type SessionCardProps = {
   session: ScreenSession;
+  onPress?: () => void;
 };
 
-export function SessionCard({ session }: SessionCardProps) {
+export function SessionCard({ session, onPress }: SessionCardProps) {
   const createdAt = new Date(session.savedAt ?? session.createdAt).toLocaleString();
 
   return (
-    <View className="rounded-[28px] border border-white/10 bg-white/10 p-5">
+    <Pressable
+      accessibilityRole={onPress ? "button" : undefined}
+      className="rounded-[28px] border border-white/10 bg-white/10 p-5 active:opacity-80"
+      disabled={!onPress}
+      onPress={onPress}
+    >
       <Text className="text-xs font-black uppercase tracking-[1.5px] text-mint">{createdAt}</Text>
       <Text className="mt-2 text-xl font-black text-white">OCR session</Text>
       <Text className="mt-3 text-base leading-7 text-slate-300" numberOfLines={4}>
@@ -26,6 +32,7 @@ export function SessionCard({ session }: SessionCardProps) {
           </Text>
         ) : null}
       </View>
-    </View>
+      {onPress ? <Text className="mt-4 text-sm font-black text-electric">Open session</Text> : null}
+    </Pressable>
   );
 }

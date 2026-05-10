@@ -6,6 +6,7 @@ import { Image, ScrollView, Text, View } from "react-native";
 import { LoadingState, PrimaryButton, ReadableTextBlock, ScreenCard } from "@/components/ui";
 import { routes } from "@/constants/routes";
 import { ocrService, type OcrProcessingStatus } from "@/services/ocr";
+import { storageService } from "@/services/storage";
 import { useSessionStore } from "@/store/sessionStore";
 import type { OcrResult, UploadedScreenshot } from "@/types/screenSession";
 import { createId } from "@/utils/createId";
@@ -19,6 +20,8 @@ export default function UploadScreenshotRoute() {
   const [progress, setProgress] = useState(0);
   const [statusMessage, setStatusMessage] = useState("Choose a screenshot from your gallery to begin.");
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  const [sessionId, setSessionId] = useState<string | null>(null);
+  const isBusy = status === "preprocessing" || status === "processing";
 
   const pickImage = async () => {
     setErrorMessage(null);
@@ -50,11 +53,12 @@ export default function UploadScreenshotRoute() {
       uri: asset.uri,
       width: asset.width
     };
-    const sessionId = createId("screen-session");
+    const nextSessionId = createId("screen-session");
 
+    setSessionId(nextSessionId);
     setImage(selectedImage);
     setOcrResult(null);
-    await processImage(selectedImage, sessionId);
+    await processImage(selectedImage, nextSessionId);
   };
 
   const processImage = async (selectedImage: UploadedScreenshot, sessionId = createId("screen-session")) => {
@@ -74,17 +78,33 @@ export default function UploadScreenshotRoute() {
         }
       });
 
-      setOcrResult(ocr);
-      setCurrentSession({
+      const nextSession = {
         id: sessionId,
         createdAt: new Date().toISOString(),
         ocr,
         screenshot: ocr.sourceImage
-      });
+      };
+      const savedSession = {
+        ...nextSession,
+        savedAt: new Date().toISOString()
+      };
+
+      setOcrResult(ocr);
+      setCurrentSession(savedSession);
       setStatus("complete");
       setProgress(1);
       setImage(ocr.sourceImage);
       setStatusMessage("OCR complete. Review the extracted text below.");
+      try {
+        await storageService.saveScreenSession(savedSession);
+        setStatusMessage("OCR complete and saved locally. Review the extracted text below.");
+      } catch (storageError) {
+        setErrorMessage(
+          storageError instanceof Error
+            ? `OCR complete, but local save failed: ${storageError.message}`
+            : "OCR complete, but local save failed."
+        );
+      }
     } catch (error) {
       const message = error instanceof Error ? error.message : "OCR processing failed. Try another screenshot.";
 
@@ -100,7 +120,10 @@ export default function UploadScreenshotRoute() {
     }
 
     setOcrResult(null);
-    await processImage(image);
+    const retrySessionId = sessionId ?? createId("screen-session");
+
+    setSessionId(retrySessionId);
+    await processImage(image, retrySessionId);
   };
 
   const openOcrResult = () => {
@@ -134,23 +157,15 @@ export default function UploadScreenshotRoute() {
           )}
           <Text className="text-base leading-6 text-slate-300">{statusMessage}</Text>
           <PrimaryButton
-            disabled={status === "processing"}
-            label={image ? "Choose another screenshot" : "Choose screenshot"}
+            disabled={isBusy}
+            label={isBusy ? "Scanning..." : image ? "Choose another screenshot" : "Choose screenshot"}
             onPress={pickImage}
           />
         </ScreenCard>
 
-        {status === "processing" ? (
+        {isBusy ? (
           <LoadingState
-            title="Processing screenshot"
-            message={statusMessage}
-            progress={progress}
-          />
-        ) : null}
-
-        {status === "preprocessing" ? (
-          <LoadingState
-            title="Preparing image"
+            title={status === "preprocessing" ? "Preparing image" : "Processing screenshot"}
             message={statusMessage}
             progress={progress}
           />
@@ -169,7 +184,7 @@ export default function UploadScreenshotRoute() {
             </View>
           ) : null}
           <View className="rounded-3xl border border-white/10 bg-white/5 p-4">
-            <Text className="text-sm font-black uppercase tracking-[1.5px] text-mint">Improve scan placeholder</Text>
+            <Text className="text-sm font-black uppercase tracking-[1.5px] text-mint">Improve scan</Text>
             <Text className="mt-2 text-base leading-6 text-slate-300">
               For better OCR, crop around the screen, avoid glare, and use a high-resolution screenshot.
             </Text>

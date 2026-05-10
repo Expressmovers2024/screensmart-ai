@@ -1,7 +1,9 @@
 import { useState } from "react";
+import { useRouter } from "expo-router";
 import { ScrollView, Text, View } from "react-native";
 
 import { LoadingState, PrimaryButton, ReadableTextBlock, ScreenCard } from "@/components/ui";
+import { routes } from "@/constants/routes";
 import { useCurrentSession } from "@/hooks/useCurrentSession";
 import { aiService, type AiResponse, type AiTask } from "@/services/ai";
 import { storageService } from "@/services/storage";
@@ -20,33 +22,39 @@ const generationActions: GenerationAction[] = [
   { label: "Explain OCR Text", task: "explain" }
 ];
 
-const fallbackSession: ScreenSession = {
-  id: "summary-fallback-session",
-  createdAt: new Date().toISOString(),
-  ocr: {
-    id: "summary-fallback-ocr",
-    blocks: [],
-    confidence: 0.5,
-    extractedText: "Upload and scan a screenshot to generate AI summaries grounded in OCR text.",
-    processedAt: new Date().toISOString(),
-    provider: "placeholder",
-    rawText: "Upload and scan a screenshot to generate AI summaries grounded in OCR text.",
-    sourceImage: {
-      uri: "placeholder://summary"
-    }
-  }
-};
-
 export default function SummaryRoute() {
+  const router = useRouter();
   const currentSession = useCurrentSession();
   const updateCurrentSession = useSessionStore((state) => state.updateCurrentSession);
-  const session = currentSession ?? fallbackSession;
-  const [response, setResponse] = useState<AiResponse | null>(null);
+  const saveCurrentSessionToLibrary = useSessionStore((state) => state.saveCurrentSessionToLibrary);
+  const session = currentSession;
+  const [response, setResponse] = useState<AiResponse | null>(
+    currentSession?.summary
+      ? {
+          id: `${currentSession.id}-saved-summary`,
+          content: currentSession.summary,
+          createdAt: currentSession.savedAt ?? currentSession.createdAt,
+          format: "markdown",
+          model: "saved-session",
+          provider: "placeholder",
+          streamed: false,
+          task: "short_summary",
+          usage: { estimated: true }
+        }
+      : null
+  );
   const [activeTask, setActiveTask] = useState<AiTask | null>(null);
   const [lastTask, setLastTask] = useState<AiTask>("short_summary");
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  const [isSaving, setIsSaving] = useState(false);
+  const [saveStatus, setSaveStatus] = useState("Save session");
 
   const generate = async (task: AiTask) => {
+    if (!session?.ocr) {
+      setErrorMessage("Upload and scan a screenshot before generating an AI summary.");
+      return;
+    }
+
     setActiveTask(task);
     setLastTask(task);
     setErrorMessage(null);
@@ -62,9 +70,10 @@ export default function SummaryRoute() {
         };
 
         updateCurrentSession({ summary: nextResponse.content });
-        if (currentSession) {
-          void storageService.saveScreenSession(updatedSession);
-        }
+        void storageService.saveScreenSession({
+          ...updatedSession,
+          savedAt: updatedSession.savedAt ?? new Date().toISOString()
+        });
       }
     } catch (error) {
       setErrorMessage(error instanceof Error ? error.message : "AI generation failed.");
@@ -72,6 +81,43 @@ export default function SummaryRoute() {
       setActiveTask(null);
     }
   };
+
+  const saveToLibrary = async () => {
+    setIsSaving(true);
+    setErrorMessage(null);
+    try {
+      const savedSession = saveCurrentSessionToLibrary();
+
+      if (!savedSession) {
+        throw new Error("No active OCR session is available to save.");
+      }
+
+      await storageService.saveScreenSession(savedSession);
+      setSaveStatus("Saved locally");
+    } catch (error) {
+      setSaveStatus("Retry save");
+      setErrorMessage(error instanceof Error ? error.message : "Unable to save this session.");
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
+  if (!session?.ocr) {
+    return (
+      <ScrollView className="flex-1 bg-ink" contentContainerClassName="px-6 pb-12 pt-14">
+        <View className="mb-8">
+          <Text className="text-xs font-black uppercase tracking-[2px] text-electric">AI summary</Text>
+          <Text className="mt-3 text-4xl font-black leading-tight text-white">Scan a screen first</Text>
+          <Text className="mt-4 text-base leading-7 text-slate-300">
+            ScreenSmart needs OCR text before it can generate a summary, audio, or TalkBack follow-up.
+          </Text>
+        </View>
+        <ScreenCard title="Start the MVP flow">
+          <PrimaryButton label="Upload screenshot" onPress={() => router.push(routes.uploadScreenshot)} />
+        </ScreenCard>
+      </ScrollView>
+    );
+  }
 
   return (
     <ScrollView className="flex-1 bg-ink" contentContainerClassName="px-6 pb-12 pt-14">
@@ -105,7 +151,6 @@ export default function SummaryRoute() {
           <LoadingState
             title="ScreenSmart is thinking"
             message="Generating an AI response grounded in OCR text..."
-            progress={0.66}
           />
         ) : null}
 
@@ -125,6 +170,9 @@ export default function SummaryRoute() {
             </Text>
           ) : null}
           <PrimaryButton disabled={!response || activeTask !== null} label="Retry generation" onPress={() => generate(lastTask)} variant="secondary" />
+          <PrimaryButton disabled={!response || activeTask !== null} label="Listen to summary" onPress={() => router.push(routes.audioReader)} />
+          <PrimaryButton disabled={activeTask !== null} label="Ask TalkBack follow-up" onPress={() => router.push(routes.talkbackChat)} variant="ghost" />
+          <PrimaryButton disabled={isSaving} label={isSaving ? "Saving..." : saveStatus} onPress={saveToLibrary} variant="secondary" />
         </ScreenCard>
       </View>
     </ScrollView>

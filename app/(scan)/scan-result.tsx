@@ -3,7 +3,7 @@ import * as Clipboard from "expo-clipboard";
 import { useRouter } from "expo-router";
 import { Image, ScrollView, Text, View } from "react-native";
 
-import { PrimaryButton, ReadableTextBlock, ScreenCard } from "@/components/ui";
+import { PrimaryButton, ReadableTextBlock, RetryState, ScreenCard } from "@/components/ui";
 import { routes } from "@/constants/routes";
 import { storageService } from "@/services/storage";
 import { useSessionStore } from "@/store/sessionStore";
@@ -15,6 +15,7 @@ export default function ScanResultRoute() {
   const [copyStatus, setCopyStatus] = useState("Copy extracted text");
   const [saveStatus, setSaveStatus] = useState("Save to library");
   const [isSaving, setIsSaving] = useState(false);
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
   const extractedText = currentSession?.ocr?.extractedText;
 
@@ -23,8 +24,13 @@ export default function ScanResultRoute() {
       return;
     }
 
-    await Clipboard.setStringAsync(extractedText);
-    setCopyStatus("Copied");
+    try {
+      setErrorMessage(null);
+      await Clipboard.setStringAsync(extractedText);
+      setCopyStatus("Copied");
+    } catch (error) {
+      setErrorMessage(error instanceof Error ? error.message : "Unable to copy extracted text.");
+    }
   };
 
   const saveToLibrary = async () => {
@@ -32,9 +38,13 @@ export default function ScanResultRoute() {
 
     if (savedSession) {
       setIsSaving(true);
+      setErrorMessage(null);
       try {
         await storageService.saveScreenSession(savedSession);
         setSaveStatus("Saved to library");
+      } catch (error) {
+        setSaveStatus("Retry save");
+        setErrorMessage(error instanceof Error ? error.message : "Unable to save this OCR session.");
       } finally {
         setIsSaving(false);
       }
@@ -87,13 +97,16 @@ export default function ScanResultRoute() {
           </Text>
           <PrimaryButton label={copyStatus} onPress={copyText} />
           <PrimaryButton disabled={isSaving} label={isSaving ? "Saving..." : saveStatus} onPress={saveToLibrary} variant="secondary" />
+          {errorMessage ? <RetryState title="Action failed" message={errorMessage} onRetry={saveToLibrary} /> : null}
         </ScreenCard>
 
         <ScreenCard title="Next steps">
           <Text className="text-base leading-7 text-slate-300">
-            Summary, explanation, audio reading, and TalkBack chat will build on this current screen session.
+            Generate the first AI summary, listen to it aloud, or ask a TalkBack follow-up grounded in this OCR text.
           </Text>
-          <PrimaryButton label="Continue to summary" onPress={() => router.push(routes.summary)} variant="ghost" />
+          <PrimaryButton label="Generate AI summary" onPress={() => router.push(routes.summary)} />
+          <PrimaryButton label="Listen with TTS" onPress={() => router.push(routes.audioReader)} variant="secondary" />
+          <PrimaryButton label="Ask TalkBack follow-up" onPress={() => router.push(routes.talkbackChat)} variant="ghost" />
         </ScreenCard>
       </View>
     </ScrollView>

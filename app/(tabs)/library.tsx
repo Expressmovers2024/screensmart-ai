@@ -1,15 +1,17 @@
 import { useCallback, useEffect, useState } from "react";
-import { useRouter } from "expo-router";
+import { useFocusEffect, useRouter } from "expo-router";
 import { ScrollView, Text, View } from "react-native";
 
 import { SessionCard } from "@/components/session";
 import { EmptyState, LoadingState, PrimaryButton, RetryState, ScreenCard } from "@/components/ui";
 import { routes } from "@/constants/routes";
 import { storageService } from "@/services/storage";
+import { useSessionStore } from "@/store/sessionStore";
 import type { ScreenSession } from "@/types/screenSession";
 
 export default function LibraryRoute() {
   const router = useRouter();
+  const setCurrentSession = useSessionStore((state) => state.setCurrentSession);
   const [sessions, setSessions] = useState<ScreenSession[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
@@ -30,6 +32,17 @@ export default function LibraryRoute() {
   useEffect(() => {
     void loadSessions();
   }, [loadSessions]);
+
+  useFocusEffect(
+    useCallback(() => {
+      void loadSessions();
+    }, [loadSessions])
+  );
+
+  const openSession = (session: ScreenSession) => {
+    setCurrentSession(session);
+    router.push(routes.summary);
+  };
 
   return (
     <ScrollView className="flex-1 bg-ink" contentContainerClassName="px-6 pb-12 pt-14">
@@ -53,7 +66,9 @@ export default function LibraryRoute() {
               onAction={() => router.push(routes.uploadScreenshot)}
             />
           ) : null}
-          {!isLoading && !errorMessage ? sessions.map((session) => <SessionCard key={session.id} session={session} />) : null}
+          {!isLoading && !errorMessage
+            ? sessions.map((session) => <SessionCard key={session.id} session={session} onPress={() => openSession(session)} />)
+            : null}
           <PrimaryButton label="Refresh library" onPress={loadSessions} variant="secondary" />
         </ScreenCard>
       </View>

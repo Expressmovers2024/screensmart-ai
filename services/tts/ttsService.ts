@@ -1,4 +1,5 @@
 import { createId } from "@/utils/createId";
+import * as Speech from "expo-speech";
 
 import type {
   AudioReaderChunk,
@@ -9,6 +10,23 @@ import type {
 } from "./types";
 
 const WORDS_PER_MINUTE = 170;
+const fallbackVoices = [
+  {
+    id: "calm-guide",
+    label: "Calm Guide",
+    description: "Warm voice for patient screen explanations"
+  },
+  {
+    id: "clear-reader",
+    label: "Clear Reader",
+    description: "Crisp voice for OCR text and details"
+  },
+  {
+    id: "fast-focus",
+    label: "Fast Focus",
+    description: "Compact voice for quick reviews"
+  }
+];
 
 export const ttsService: TtsService = {
   createPlaybackSession({ sourceSessionId, text, voiceId, speed }: CreatePlaybackSessionInput) {
@@ -63,40 +81,52 @@ export const ttsService: TtsService = {
   async prepareBackgroundPlayback() {
     return {
       enabled: false,
-      reason: "Background playback is a placeholder architecture hook until real TTS audio is connected."
+      reason: "Background playback is not enabled in the first mobile MVP."
     };
   },
 
-  async speak() {
+  async speak(text, options) {
+    await Speech.stop();
+    Speech.speak(text, {
+      language: "en-US",
+      pitch: 1,
+      rate: options.speed,
+      voice: getNativeVoiceId(options.voiceId)
+    });
+
     return "playing";
   },
 
   async pause() {
+    if (typeof Speech.pause === "function") {
+      await Speech.pause();
+    } else {
+      await Speech.stop();
+    }
+
     return "paused";
   },
 
   async stop() {
+    await Speech.stop();
+
     return "stopped";
   },
 
   async listVoices() {
-    return [
-      {
-        id: "calm-guide",
-        label: "Calm Guide",
-        description: "Warm voice for patient screen explanations"
-      },
-      {
-        id: "clear-reader",
-        label: "Clear Reader",
-        description: "Crisp voice for OCR text and details"
-      },
-      {
-        id: "fast-focus",
-        label: "Fast Focus",
-        description: "Compact voice for quick reviews"
-      }
-    ];
+    const nativeVoices = await Speech.getAvailableVoicesAsync();
+    const englishVoices = nativeVoices.filter((voice) => voice.language?.toLowerCase().startsWith("en"));
+    const voices = englishVoices.length > 0 ? englishVoices : nativeVoices;
+
+    if (voices.length === 0) {
+      return fallbackVoices;
+    }
+
+    return voices.slice(0, 6).map((voice) => ({
+      description: `${voice.language ?? "System"} voice`,
+      id: `native:${voice.identifier}`,
+      label: voice.name || voice.identifier
+    }));
   }
 };
 
@@ -104,4 +134,8 @@ function estimateChunkSeconds(text: string, speed: PlaybackSpeed) {
   const words = text.trim().split(/\s+/).filter(Boolean).length;
 
   return Math.max(2, Math.ceil((words / (WORDS_PER_MINUTE * speed)) * 60));
+}
+
+function getNativeVoiceId(voiceId: string) {
+  return voiceId.startsWith("native:") ? voiceId.replace("native:", "") : undefined;
 }

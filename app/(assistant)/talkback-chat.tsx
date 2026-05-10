@@ -3,7 +3,7 @@ import { useRouter } from "expo-router";
 import { KeyboardAvoidingView, Platform, Pressable, ScrollView, Text, TextInput, View } from "react-native";
 
 import { ChatBubble, TypingIndicator } from "@/components/chat";
-import { PrimaryButton, ReadableTextBlock, ScreenCard } from "@/components/ui";
+import { PrimaryButton, ReadableTextBlock, RetryState, ScreenCard } from "@/components/ui";
 import { routes } from "@/constants/routes";
 import { useChatHistory } from "@/hooks/useChatHistory";
 import { useCurrentSession } from "@/hooks/useCurrentSession";
@@ -56,10 +56,14 @@ export default function TalkBackChatRoute() {
   const session = currentSession ?? fallbackSession;
   const chatHistory = useChatHistory(session.id);
   const appendChatMessage = useSessionStore((state) => state.appendChatMessage);
+  const setChatHistory = useSessionStore((state) => state.setChatHistory);
   const scrollRef = useRef<ScrollView>(null);
   const [draft, setDraft] = useState("");
   const [isThinking, setIsThinking] = useState(false);
   const [microphoneStatus, setMicrophoneStatus] = useState("Microphone placeholder");
+  const [hasLoadedStoredMessages, setHasLoadedStoredMessages] = useState(false);
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  const [lastFailedQuestion, setLastFailedQuestion] = useState<string | null>(null);
   const ocrContext = useMemo(
     () =>
       createOcrContext({
@@ -78,7 +82,33 @@ export default function TalkBackChatRoute() {
   }, [currentSession?.ocr]);
 
   useEffect(() => {
-    if (chatHistory.length > 0) {
+    let isMounted = true;
+
+    storageService
+      .listAiMessages(session.id)
+      .then((messages) => {
+        if (isMounted && messages.length > 0) {
+          setChatHistory(session.id, messages);
+        }
+      })
+      .catch((error) => {
+        if (isMounted) {
+          setErrorMessage(error instanceof Error ? error.message : "Unable to load saved TalkBack messages.");
+        }
+      })
+      .finally(() => {
+        if (isMounted) {
+          setHasLoadedStoredMessages(true);
+        }
+      });
+
+    return () => {
+      isMounted = false;
+    };
+  }, [session.id, setChatHistory]);
+
+  useEffect(() => {
+    if (!hasLoadedStoredMessages || chatHistory.length > 0) {
       return;
     }
 
@@ -91,7 +121,7 @@ export default function TalkBackChatRoute() {
       contextSessionId: session.id,
       createdAt: new Date().toISOString()
     });
-  }, [appendChatMessage, chatHistory.length, currentSession, session.id]);
+  }, [appendChatMessage, chatHistory.length, currentSession, hasLoadedStoredMessages, session.id]);
 
   const sendMessage = async (questionOverride?: string) => {
     const question = (questionOverride ?? draft).trim();
@@ -110,21 +140,29 @@ export default function TalkBackChatRoute() {
     const nextMessages = [...chatHistory, userMessage];
 
     setDraft("");
+    setErrorMessage(null);
+    setLastFailedQuestion(null);
     appendChatMessage(session.id, userMessage);
     void storageService.saveAiMessage(userMessage, session.id);
     setIsThinking(true);
     requestAnimationFrame(() => scrollRef.current?.scrollToEnd({ animated: true }));
 
-    const response = await aiService.answerQuestion({
-      history: nextMessages,
-      question,
-      session
-    });
+    try {
+      const response = await aiService.answerQuestion({
+        history: nextMessages,
+        question,
+        session
+      });
 
-    appendChatMessage(session.id, response);
-    void storageService.saveAiMessage(response, session.id);
-    setIsThinking(false);
-    requestAnimationFrame(() => scrollRef.current?.scrollToEnd({ animated: true }));
+      appendChatMessage(session.id, response);
+      void storageService.saveAiMessage(response, session.id);
+      requestAnimationFrame(() => scrollRef.current?.scrollToEnd({ animated: true }));
+    } catch (error) {
+      setLastFailedQuestion(question);
+      setErrorMessage(error instanceof Error ? error.message : "TalkBack could not answer that question.");
+    } finally {
+      setIsThinking(false);
+    }
   };
 
   const handleMicrophonePress = () => {
@@ -142,7 +180,7 @@ export default function TalkBackChatRoute() {
           <Text className="text-xs font-black uppercase tracking-[2px] text-electric">TalkBack AI</Text>
           <Text className="mt-3 text-4xl font-black leading-tight text-white">Ask about this screen</Text>
           <Text className="mt-4 text-base leading-7 text-slate-300">
-            Mock AI responses are grounded in the current OCR session context and extracted screen text.
+            Follow-up answers are grounded in the current OCR session context and extracted screen text.
           </Text>
         </View>
 
@@ -165,6 +203,20 @@ export default function TalkBackChatRoute() {
               {isThinking ? <TypingIndicator /> : null}
             </View>
           </ScreenCard>
+
+          {errorMessage ? (
+            <RetryState
+              title="TalkBack failed"
+              message={errorMessage}
+              onRetry={() => {
+                if (lastFailedQuestion) {
+                  void sendMessage(lastFailedQuestion);
+                } else {
+                  setErrorMessage(null);
+                }
+              }}
+            />
+          ) : null}
 
           <ScreenCard eyebrow="Ask About Screen" title="Quick prompts">
             {starterPrompts.map((prompt) => (
