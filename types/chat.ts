@@ -5,4 +5,5 @@ export type ChatMessage = {
   role: ChatRole;
   body: string;
   createdAt: string;
+  contextSessionId?: string;
 };
