@@ -1,7 +1,7 @@
 import type { ChatMessage } from "@/types/chat";
 import { createId } from "@/utils/createId";
 
-import type { AiChatRequest, AiChatResponse, OcrContext, OcrContextCategory } from "./types";
+import type { AiChatRequest, AiChatResponse, AiResponse, OcrContext, OcrContextCategory } from "./types";
 
 export function createOcrContext(input: {
   sessionId: string;
