@@ -1,0 +1,34 @@
+{
+  "name": "screensmart-ai",
+  "version": "1.0.0",
+  "description": "AI screen companion that reads, summarizes, explains, and talks back about anything on your screen.",
+  "main": "index.ts",
+  "private": true,
+  "scripts": {
+    "start": "expo start",
+    "android": "expo start --android",
+    "ios": "expo start --ios",
+    "web": "expo start --web",
+    "typecheck": "tsc --noEmit"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Expressmovers2024/screensmart-ai.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/Expressmovers2024/screensmart-ai/issues"
+  },
+  "homepage": "https://github.com/Expressmovers2024/screensmart-ai#readme",
+  "dependencies": {
+    "expo": "^55.0.23",
+    "react": "19.2.0",
+    "react-native": "0.83.6"
+  },
+  "devDependencies": {
+    "@types/react": "^19.2.14",
+    "typescript": "^5.9.3"
+  }
+}
