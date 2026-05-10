@@ -4,7 +4,7 @@ AI screen companion that reads, summarizes, explains, and talks back about anyth
 
 ## App foundation
 
-This repository contains a clean React Native Expo TypeScript foundation focused on scalable folders and navigation structure only.
+This repository contains a clean React Native Expo TypeScript foundation with scalable folders, Expo Router navigation, and modern placeholder UI screens.
 
 Route structure:
 
@@ -32,7 +32,7 @@ Source structure:
 - `src/types`
 - `src/utils`
 
-The route files render minimal placeholders so navigation compiles without implementing product flows yet.
+The route files render mobile-first placeholder UI with rounded cards and large accessible buttons. Product flows, live recording, OCR, AI processing, TTS, and Supabase integration are intentionally left for later implementation.
 
 ## Development
 
