@@ -15,8 +15,21 @@ export const placeholderTtsService: TtsService = {
 
   async listVoices() {
     return [
-      { id: "calm-guide", label: "Calm Guide" },
-      { id: "clear-reader", label: "Clear Reader" }
+      {
+        id: "calm-guide",
+        label: "Calm Guide",
+        description: "Warm voice for patient screen explanations"
+      },
+      {
+        id: "clear-reader",
+        label: "Clear Reader",
+        description: "Crisp voice for OCR text and details"
+      },
+      {
+        id: "fast-focus",
+        label: "Fast Focus",
+        description: "Compact voice for quick reviews"
+      }
     ];
   }
 };

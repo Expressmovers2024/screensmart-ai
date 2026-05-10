@@ -1,2 +1,2 @@
 export { placeholderTtsService } from "./placeholderTtsService";
-export type { PlaybackState, TtsService, TtsVoice } from "./types";
+export type { PlaybackSpeed, PlaybackState, TtsPlaybackOptions, TtsService, TtsVoice } from "./types";

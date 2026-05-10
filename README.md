@@ -51,6 +51,7 @@ The upload and OCR routes now include the first MVP flow:
 - readable OCR result layout
 - copy extracted text
 - save current OCR session to local Zustand library state
+- audio reader with play, pause, stop, playback speed, placeholder voices, and progress bar
 
 Live recording, browser extensions, desktop apps, advanced AI orchestration, payment systems, production OCR, production AI processing, real TTS audio, and Supabase-backed persistence are intentionally left for later implementation.
 
