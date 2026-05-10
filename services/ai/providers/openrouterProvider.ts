@@ -52,7 +52,9 @@ export const openRouterProvider: AiProvider = {
     const model = request.preferredModel || modelRoute.primary;
     const response = await fetch(proxyUrl, {
       body: JSON.stringify({
+        context: request.context,
         fallbackModels: modelRoute.fallbacks,
+        history: request.history ?? [],
         messages: [
           {
             role: "system",
@@ -68,6 +70,8 @@ export const openRouterProvider: AiProvider = {
           }
         ],
         model,
+        preferredModel: model,
+        prompt: request.prompt,
         provider: "openrouter",
         task: request.task,
         temperature: 0.2

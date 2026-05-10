@@ -162,6 +162,73 @@ For real MVP AI responses, point `EXPO_PUBLIC_AI_PROXY_URL` at a backend or Supa
 }
 ```
 
+## Supabase Edge Function AI proxy
+
+This repo includes a secure OpenRouter proxy at `supabase/functions/ai-proxy/index.ts`.
+The function accepts the mobile app proxy payload, calls OpenRouter server-side,
+and returns the normalized AI response expected by the app.
+
+Required server-side secrets:
+
+```bash
+OPENROUTER_API_KEY=your-openrouter-key
+APP_URL=https://screensmart.ai
+OPENROUTER_DEFAULT_MODEL=deepseek/deepseek-chat-v3.1:free
+```
+
+`APP_URL` and `OPENROUTER_DEFAULT_MODEL` are optional. `OPENROUTER_API_KEY`
+must never be added to `.env`, `.env.example`, or any `EXPO_PUBLIC_*` variable.
+
+Local Supabase function test:
+
+```bash
+npx supabase start
+npx supabase functions serve ai-proxy --env-file ./supabase/.env.local
+```
+
+Example `supabase/.env.local` for local function serving only:
+
+```bash
+OPENROUTER_API_KEY=your-openrouter-key
+APP_URL=http://localhost:8081
+OPENROUTER_DEFAULT_MODEL=deepseek/deepseek-chat-v3.1:free
+```
+
+Point the mobile app at the local function:
+
+```bash
+EXPO_PUBLIC_AI_PROXY_URL=http://127.0.0.1:54321/functions/v1/ai-proxy
+```
+
+Deploy and configure secrets:
+
+```bash
+npx supabase functions deploy ai-proxy
+npx supabase secrets set OPENROUTER_API_KEY=your-openrouter-key
+npx supabase secrets set APP_URL=https://screensmart.ai
+npx supabase secrets set OPENROUTER_DEFAULT_MODEL=deepseek/deepseek-chat-v3.1:free
+```
+
+Use the deployed URL in the Expo app:
+
+```bash
+EXPO_PUBLIC_AI_PROXY_URL=https://<project-ref>.supabase.co/functions/v1/ai-proxy
+```
+
+The proxy supports both payload styles:
+
+- app-generated `messages`, `model`, and `fallbackModels`
+- higher-level `task`, `prompt`, `context` / `ocrText`, `history` / `chatHistory`, and optional `preferredModel`
+
+The function includes:
+
+- CORS preflight handling
+- server-side OpenRouter secret access
+- 25 second OpenRouter timeout
+- fallback model retries
+- normalized `content`, `model`, `usage`, and `finishReason` response fields
+- JSON error responses without returning provider secrets
+
 The proxy may return either an OpenRouter-compatible chat-completions response or a normalized response:
 
 ```json

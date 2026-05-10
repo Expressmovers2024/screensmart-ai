@@ -13,4 +13,10 @@ task, model, fallback model, and message payloads to `EXPO_PUBLIC_AI_PROXY_URL`;
 the real `OPENROUTER_API_KEY` must stay in a backend or Supabase Edge Function.
 When no proxy is configured, `aiService` falls back to the placeholder provider.
 
+The Supabase Edge Function implementation lives at
+`supabase/functions/ai-proxy/index.ts`. It accepts both app-generated message
+payloads and higher-level OCR prompt/context payloads, calls OpenRouter
+server-side, and returns normalized `content`, `model`, `usage`, and
+`finishReason` fields.
+
 Future OpenAI, Anthropic, Ollama, and Gemini providers should implement the same `AiProvider` contract in `types.ts`.
