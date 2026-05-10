@@ -2,30 +2,37 @@
 
 AI screen companion that reads, summarizes, explains, and talks back about anything on your screen.
 
-## MVP foundation
+## App foundation
 
-This repository contains a clean React Native Expo TypeScript MVP focused on screenshot-based flows.
+This repository contains a clean React Native Expo TypeScript foundation focused on scalable folders and navigation structure only.
 
-Included screens:
+Route structure:
 
-- Onboarding
-- Home
-- Upload screenshot
-- Scan result
-- Audio player
-- TalkBack chat
-- Library
-- Notes
-- Settings
+- `app/onboarding.tsx`
+- `app/(tabs)/home.tsx`
+- `app/(tabs)/library.tsx`
+- `app/(tabs)/notes.tsx`
+- `app/(tabs)/settings.tsx`
+- `app/(scan)/upload-screenshot.tsx`
+- `app/(scan)/scan-result.tsx`
+- `app/(assistant)/audio-player.tsx`
+- `app/(assistant)/talkback-chat.tsx`
 
-Included placeholder services:
+Source structure:
 
-- OCR extraction
-- AI screen processing
-- Text-to-speech narration
-- Supabase persistence
+- `src/components`
+- `src/constants`
+- `src/features`
+- `src/hooks`
+- `src/lib`
+- `src/navigation`
+- `src/services`
+- `src/store`
+- `src/theme`
+- `src/types`
+- `src/utils`
 
-Live screen recording is intentionally not included in this foundation.
+The route files render minimal placeholders so navigation compiles without implementing product flows yet.
 
 ## Development
 
