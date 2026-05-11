@@ -111,6 +111,50 @@ The checkpoint stores 3-5 next actions, the orchestrator reasoning summary, the
 agent that created it, and open/completed/skipped status for future workflow
 continuity.
 
+## Mission Control Mode
+
+Mission Control turns saved screens into a mobile AI workflow command center.
+Open it from the **Mission** tab.
+
+It shows:
+
+- active sessions with open workflow checkpoints
+- recent workflow checkpoints
+- latest agent activity feed
+- saved screen shortcuts
+- active missions
+- suggested missions from saved screens
+- Continue Task shortcuts
+
+Mission object:
+
+```ts
+{
+  id: string;
+  title: string;
+  description: string;
+  status: "draft" | "active" | "paused" | "completed" | "blocked";
+  sessionIds: string[];
+  checkpointIds: string[];
+  agentsUsed: string[];
+  createdAt: string;
+  updatedAt: string;
+  nextActions: string[];
+}
+```
+
+`MissionPlannerAgent` reviews a screen session and checkpoint, creates or
+updates a local mission, saves it through `storageService`, and keeps the data
+shape ready for future Supabase sync.
+
+When **Continue This Task** is tapped from OCR result or Summary:
+
+1. `OrchestratorAgent` creates a workflow checkpoint.
+2. `MissionPlannerAgent` creates or updates the related mission.
+3. The checkpoint and mission are saved locally.
+4. Mission Control shows the mission, checkpoint, next actions, and agents that
+   will be used next.
+
 The upload and OCR routes now include the first MVP flow:
 
 - gallery image upload with Expo Image Picker

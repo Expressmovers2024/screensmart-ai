@@ -2,12 +2,13 @@ import type { ChatMessage } from "@/types/chat";
 import type { ScreenSession } from "@/types/screenSession";
 
 import type { Database, Json } from "./database.types";
-import type { AudioEvent, Note, UserSettings } from "./types";
+import type { AudioEvent, Mission, Note, UserSettings } from "./types";
 
 type ScreenSessionRow = Database["public"]["Tables"]["screen_sessions"]["Row"];
 type AiMessageRow = Database["public"]["Tables"]["ai_messages"]["Row"];
 type NoteRow = Database["public"]["Tables"]["notes"]["Row"];
 type AudioEventRow = Database["public"]["Tables"]["audio_events"]["Row"];
+type MissionRow = Database["public"]["Tables"]["missions"]["Row"];
 type SettingsRow = Database["public"]["Tables"]["user_settings"]["Row"];
 
 export function toScreenSessionInsert(session: ScreenSession, userId: string) {
@@ -99,6 +100,37 @@ export function fromAudioEventRow(row: AudioEventRow): AudioEvent {
     playbackSessionId: row.playback_session_id,
     progress: row.progress,
     sessionId: row.session_id
+  };
+}
+
+export function toMissionInsert(mission: Mission, userId: string) {
+  return {
+    id: mission.id,
+    user_id: userId,
+    agents_used: mission.agentsUsed,
+    checkpoint_ids: mission.checkpointIds,
+    created_at: mission.createdAt,
+    description: mission.description,
+    next_actions: mission.nextActions,
+    session_ids: mission.sessionIds,
+    status: mission.status,
+    title: mission.title,
+    updated_at: new Date().toISOString()
+  };
+}
+
+export function fromMissionRow(row: MissionRow): Mission {
+  return {
+    id: row.id,
+    agentsUsed: row.agents_used,
+    checkpointIds: row.checkpoint_ids,
+    createdAt: row.created_at,
+    description: row.description,
+    nextActions: row.next_actions,
+    sessionIds: row.session_ids,
+    status: row.status,
+    title: row.title,
+    updatedAt: row.updated_at
   };
 }
 

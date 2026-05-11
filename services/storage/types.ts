@@ -45,6 +45,21 @@ export type UserSettings = {
   updatedAt: string;
 };
 
+export type MissionStatus = "draft" | "active" | "paused" | "completed" | "blocked";
+
+export type Mission = {
+  id: string;
+  title: string;
+  description: string;
+  status: MissionStatus;
+  sessionIds: string[];
+  checkpointIds: string[];
+  agentsUsed: string[];
+  createdAt: string;
+  updatedAt: string;
+  nextActions: string[];
+};
+
 export type RecentActivity =
   | {
       id: string;
@@ -69,6 +84,14 @@ export type RecentActivity =
       subtitle: string;
       createdAt: string;
       audioEvent: AudioEvent;
+    }
+  | {
+      id: string;
+      type: "mission";
+      title: string;
+      subtitle: string;
+      createdAt: string;
+      mission: Mission;
     };
 
 export type StorageLoadState<T> = {
@@ -87,6 +110,8 @@ export type StorageRepository = {
   listNotes: (userId?: string) => Promise<Note[]>;
   saveAudioEvent: (event: Omit<AudioEvent, "userId" | "createdAt">, userId?: string) => Promise<AudioEvent>;
   listAudioEvents: (userId?: string) => Promise<AudioEvent[]>;
+  saveMission: (mission: Mission, userId?: string) => Promise<Mission>;
+  listMissions: (userId?: string) => Promise<Mission[]>;
   getUserSettings: (userId?: string) => Promise<UserSettings>;
   saveUserSettings: (settings: UserSettings) => Promise<UserSettings>;
   listRecentActivity: (userId?: string) => Promise<RecentActivity[]>;

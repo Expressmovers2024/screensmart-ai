@@ -9,6 +9,7 @@ import { ResearchAgent } from "../research/ResearchAgent";
 import { WebSearchAgent } from "../research/WebSearchAgent";
 import { ExplainAgent } from "../screensmart/ExplainAgent";
 import { MemoryAgent } from "../screensmart/MemoryAgent";
+import { MissionPlannerAgent } from "../screensmart/MissionPlannerAgent";
 import { NotesAgent } from "../screensmart/NotesAgent";
 import { OCRAgent } from "../screensmart/OCRAgent";
 import { SafetyAgent } from "../screensmart/SafetyAgent";
@@ -28,6 +29,7 @@ export class AgentRegistry {
       new SummaryAgent(),
       new ExplainAgent(),
       new TalkBackAgent(),
+      new MissionPlannerAgent(),
       new NotesAgent(),
       new VoiceAgent(),
       new MemoryAgent(),

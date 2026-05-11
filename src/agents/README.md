@@ -43,6 +43,10 @@ reasoning, and suggested actions.
 `MemoryAgent` prepares session title, tags, key entities, summary, workflow
 checkpoints, and last active timestamp for local-first continuity.
 
+`MissionPlannerAgent` turns a screen session plus the latest workflow
+checkpoint into a local mission with title, description, next actions, required
+agents, and Supabase-ready mission shape.
+
 Research, browser, and engineering agents are registered as safe stubs so the
 department boundaries exist without enabling browser control, automation,
 coding automation, or external research in the mobile MVP.

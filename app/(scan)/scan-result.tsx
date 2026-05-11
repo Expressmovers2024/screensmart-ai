@@ -6,11 +6,12 @@ import { Image, ScrollView, Text, View } from "react-native";
 import { AgentTimelinePanel, ScreenIntelligenceCards, WorkflowCheckpointCard } from "@/components/agents";
 import { PrimaryButton, ReadableTextBlock, RetryState, ScreenCard } from "@/components/ui";
 import { routes } from "@/constants/routes";
-import { storageService } from "@/services/storage";
-import { OrchestratorAgent, type ContinueTaskPlan } from "@/src/agents";
+import { storageService, type Mission } from "@/services/storage";
+import { MissionPlannerAgent, OrchestratorAgent, type ContinueTaskPlan } from "@/src/agents";
 import { useSessionStore } from "@/store/sessionStore";
 
 const orchestratorAgent = new OrchestratorAgent();
+const missionPlannerAgent = new MissionPlannerAgent();
 
 export default function ScanResultRoute() {
   const router = useRouter();
@@ -22,6 +23,7 @@ export default function ScanResultRoute() {
   const [isSaving, setIsSaving] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [continuePlan, setContinuePlan] = useState<ContinueTaskPlan | null>(null);
+  const [mission, setMission] = useState<Mission | null>(null);
 
   const extractedText = currentSession?.ocr?.extractedText;
 
@@ -90,6 +92,20 @@ export default function ScanResultRoute() {
 
     const plan = await orchestratorAgent.continueTask(currentSession);
     const workflowCheckpoints = [plan.checkpoint, ...(currentSession.workflowCheckpoints ?? [])];
+    const existingMission = (await storageService.listMissions()).find((item) => item.sessionIds.includes(currentSession.id));
+    const missionResult = await missionPlannerAgent.execute(
+      {
+        checkpoint: plan.checkpoint,
+        existingMission,
+        session: {
+          ...currentSession,
+          workflowCheckpoints
+        }
+      },
+      {
+        sessionId: currentSession.id
+      }
+    );
     const nextSession = {
       ...currentSession,
       lastActiveAt: new Date().toISOString(),
@@ -97,6 +113,7 @@ export default function ScanResultRoute() {
     };
 
     setContinuePlan(plan);
+    setMission(missionResult.output.mission);
     updateCurrentSession({ lastActiveAt: nextSession.lastActiveAt, workflowCheckpoints });
     void storageService.saveScreenSession(nextSession);
   };
@@ -158,6 +175,7 @@ export default function ScanResultRoute() {
 
         <WorkflowCheckpointCard
           checkpoints={currentSession.workflowCheckpoints}
+          mission={mission}
           plan={continuePlan}
           onActionPress={handleSuggestedAction}
           onContinue={continueTask}

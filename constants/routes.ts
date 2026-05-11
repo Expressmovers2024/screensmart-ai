@@ -7,6 +7,7 @@ export const routes = {
   summary: "/summary",
   audioReader: "/audio-player",
   talkbackChat: "/talkback-chat",
+  missionControl: "/mission-control",
   library: "/library",
   notes: "/notes",
   settings: "/settings"

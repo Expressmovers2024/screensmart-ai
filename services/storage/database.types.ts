@@ -137,6 +137,45 @@ export type Database = {
         };
         Relationships: [];
       };
+      missions: {
+        Row: {
+          id: string;
+          user_id: string;
+          title: string;
+          description: string;
+          status: "draft" | "active" | "paused" | "completed" | "blocked";
+          session_ids: string[];
+          checkpoint_ids: string[];
+          agents_used: string[];
+          next_actions: string[];
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id: string;
+          user_id: string;
+          title: string;
+          description: string;
+          status?: "draft" | "active" | "paused" | "completed" | "blocked";
+          session_ids?: string[];
+          checkpoint_ids?: string[];
+          agents_used?: string[];
+          next_actions?: string[];
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: {
+          title?: string;
+          description?: string;
+          status?: "draft" | "active" | "paused" | "completed" | "blocked";
+          session_ids?: string[];
+          checkpoint_ids?: string[];
+          agents_used?: string[];
+          next_actions?: string[];
+          updated_at?: string;
+        };
+        Relationships: [];
+      };
       user_settings: {
         Row: {
           user_id: string;

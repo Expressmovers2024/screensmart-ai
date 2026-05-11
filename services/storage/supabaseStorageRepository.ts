@@ -5,10 +5,12 @@ import { createId } from "@/utils/createId";
 import {
   fromAiMessageRow,
   fromAudioEventRow,
+  fromMissionRow,
   fromNoteRow,
   fromScreenSessionRow,
   fromSettingsRow,
   toAiMessageInsert,
+  toMissionInsert,
   toScreenSessionInsert
 } from "./mappers";
 import { mockLocalUser } from "./mockUser";
@@ -151,6 +153,34 @@ export const supabaseStorageRepository: StorageRepository = {
     return (data ?? []).map(fromAudioEventRow);
   },
 
+  async saveMission(mission, userId = mockLocalUser.id) {
+    const { data, error } = await supabase
+      .from("missions")
+      .upsert(toMissionInsert(mission, userId))
+      .select()
+      .single();
+
+    if (error) {
+      throw error;
+    }
+
+    return fromMissionRow(data);
+  },
+
+  async listMissions(userId = mockLocalUser.id) {
+    const { data, error } = await supabase
+      .from("missions")
+      .select("*")
+      .eq("user_id", userId)
+      .order("updated_at", { ascending: false });
+
+    if (error) {
+      throw error;
+    }
+
+    return (data ?? []).map(fromMissionRow);
+  },
+
   async getUserSettings(userId = mockLocalUser.id) {
     const { data, error } = await supabase.from("user_settings").select("*").eq("user_id", userId).maybeSingle();
 
@@ -190,20 +220,22 @@ export const supabaseStorageRepository: StorageRepository = {
   },
 
   async listRecentActivity(userId = mockLocalUser.id) {
-    const [sessions, notes, audioEvents] = await Promise.all([
+    const [sessions, notes, audioEvents, missions] = await Promise.all([
       this.listScreenSessions(userId),
       this.listNotes(userId),
-      this.listAudioEvents(userId)
+      this.listAudioEvents(userId),
+      this.listMissions(userId)
     ]);
 
-    return buildRecentActivity(sessions, notes, audioEvents);
+    return buildRecentActivity(sessions, notes, audioEvents, missions);
   }
 };
 
 function buildRecentActivity(
   sessions: Awaited<ReturnType<StorageRepository["listScreenSessions"]>>,
   notes: Note[],
-  audioEvents: AudioEvent[]
+  audioEvents: AudioEvent[],
+  missions: Awaited<ReturnType<StorageRepository["listMissions"]>>
 ): RecentActivity[] {
   return [
     ...sessions.map<RecentActivity>((session) => ({
@@ -229,6 +261,14 @@ function buildRecentActivity(
       subtitle: `Progress ${Math.round(audioEvent.progress ?? 0)}%`,
       title: `Audio ${audioEvent.eventType}`,
       type: "audio_event"
+    })),
+    ...missions.slice(0, 5).map<RecentActivity>((mission) => ({
+      id: mission.id,
+      mission,
+      createdAt: mission.updatedAt,
+      subtitle: mission.description,
+      title: mission.title,
+      type: "mission"
     }))
   ]
     .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())

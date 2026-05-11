@@ -3,6 +3,8 @@ export type { Database } from "./database.types";
 export type {
   AudioEvent,
   AudioEventType,
+  Mission,
+  MissionStatus,
   MockUser,
   Note,
   RecentActivity,

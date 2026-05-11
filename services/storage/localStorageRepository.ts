@@ -5,12 +5,13 @@ import type { ScreenSession } from "@/types/screenSession";
 import { createId } from "@/utils/createId";
 
 import { mockLocalUser } from "./mockUser";
-import type { AudioEvent, Note, RecentActivity, StorageRepository, UserSettings } from "./types";
+import type { AudioEvent, Mission, Note, RecentActivity, StorageRepository, UserSettings } from "./types";
 
 type LocalStorageState = {
   screenSessions: ScreenSession[];
   aiMessages: Record<string, ChatMessage[]>;
   notes: Note[];
+  missions: Mission[];
   audioEvents: AudioEvent[];
   userSettings: UserSettings | null;
 };
@@ -20,6 +21,7 @@ const STORAGE_KEY = "screensmart-storage-v1";
 const initialState: LocalStorageState = {
   aiMessages: {},
   audioEvents: [],
+  missions: [],
   notes: [],
   screenSessions: [],
   userSettings: null
@@ -121,6 +123,29 @@ export const localStorageRepository: StorageRepository = {
     return state.audioEvents.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
   },
 
+  async saveMission(mission) {
+    const state = await readState();
+    const now = new Date().toISOString();
+    const savedMission: Mission = {
+      ...mission,
+      createdAt: mission.createdAt || now,
+      updatedAt: now
+    };
+
+    await writeState({
+      ...state,
+      missions: [savedMission, ...state.missions.filter((item) => item.id !== savedMission.id)]
+    });
+
+    return savedMission;
+  },
+
+  async listMissions() {
+    const state = await readState();
+
+    return state.missions.sort((a, b) => new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime());
+  },
+
   async getUserSettings(userId = mockLocalUser.id) {
     const state = await readState();
 
@@ -150,10 +175,11 @@ export const localStorageRepository: StorageRepository = {
   },
 
   async listRecentActivity() {
-    const [sessions, notes, audioEvents] = await Promise.all([
+    const [sessions, notes, audioEvents, missions] = await Promise.all([
       this.listScreenSessions(),
       this.listNotes(),
-      this.listAudioEvents()
+      this.listAudioEvents(),
+      this.listMissions()
     ]);
     const sessionActivity: RecentActivity[] = sessions.map((session) => ({
       id: session.id,
@@ -179,8 +205,16 @@ export const localStorageRepository: StorageRepository = {
       title: `Audio ${audioEvent.eventType}`,
       type: "audio_event"
     }));
+    const missionActivity: RecentActivity[] = missions.slice(0, 5).map((mission) => ({
+      id: mission.id,
+      createdAt: mission.updatedAt,
+      mission,
+      subtitle: mission.description,
+      title: mission.title,
+      type: "mission"
+    }));
 
-    return [...sessionActivity, ...noteActivity, ...audioActivity]
+    return [...sessionActivity, ...noteActivity, ...audioActivity, ...missionActivity]
       .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
       .slice(0, 20);
   }

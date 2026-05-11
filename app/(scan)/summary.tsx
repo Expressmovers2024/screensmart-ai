@@ -7,12 +7,13 @@ import { LoadingState, PrimaryButton, ReadableTextBlock, ScreenCard } from "@/co
 import { routes } from "@/constants/routes";
 import { useCurrentSession } from "@/hooks/useCurrentSession";
 import { aiService, type AiResponse, type AiTask } from "@/services/ai";
-import { storageService } from "@/services/storage";
-import { OrchestratorAgent, type ContinueTaskPlan } from "@/src/agents";
+import { storageService, type Mission } from "@/services/storage";
+import { MissionPlannerAgent, OrchestratorAgent, type ContinueTaskPlan } from "@/src/agents";
 import { useSessionStore } from "@/store/sessionStore";
 import type { ScreenSession } from "@/types/screenSession";
 
 const orchestratorAgent = new OrchestratorAgent();
+const missionPlannerAgent = new MissionPlannerAgent();
 
 type GenerationAction = {
   label: string;
@@ -53,6 +54,7 @@ export default function SummaryRoute() {
   const [isSaving, setIsSaving] = useState(false);
   const [saveStatus, setSaveStatus] = useState("Save session");
   const [continuePlan, setContinuePlan] = useState<ContinueTaskPlan | null>(null);
+  const [mission, setMission] = useState<Mission | null>(null);
 
   const generate = async (task: AiTask) => {
     if (!session?.ocr) {
@@ -115,8 +117,23 @@ export default function SummaryRoute() {
     const plan = await orchestratorAgent.continueTask(session);
     const workflowCheckpoints = [plan.checkpoint, ...(session.workflowCheckpoints ?? [])];
     const lastActiveAt = new Date().toISOString();
+    const existingMission = (await storageService.listMissions()).find((item) => item.sessionIds.includes(session.id));
+    const missionResult = await missionPlannerAgent.execute(
+      {
+        checkpoint: plan.checkpoint,
+        existingMission,
+        session: {
+          ...session,
+          workflowCheckpoints
+        }
+      },
+      {
+        sessionId: session.id
+      }
+    );
 
     setContinuePlan(plan);
+    setMission(missionResult.output.mission);
     updateCurrentSession({ lastActiveAt, workflowCheckpoints });
     void storageService.saveScreenSession({
       ...session,
@@ -192,6 +209,7 @@ export default function SummaryRoute() {
 
         <WorkflowCheckpointCard
           checkpoints={session.workflowCheckpoints}
+          mission={mission}
           plan={continuePlan}
           onActionPress={handleSuggestedAction}
           onContinue={continueTask}
