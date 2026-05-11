@@ -2,6 +2,7 @@ import { useState } from "react";
 import { useRouter } from "expo-router";
 import { ScrollView, Text, View } from "react-native";
 
+import { AgentTimelinePanel, ScreenIntelligenceCards } from "@/components/agents";
 import { LoadingState, PrimaryButton, ReadableTextBlock, ScreenCard } from "@/components/ui";
 import { routes } from "@/constants/routes";
 import { useCurrentSession } from "@/hooks/useCurrentSession";
@@ -135,6 +136,19 @@ export default function SummaryRoute() {
           <ReadableTextBlock text={session.ocr?.extractedText ?? "No OCR text available."} />
         </ScreenCard>
 
+        <ScreenIntelligenceCards
+          intelligence={session.screenIntelligence}
+          onActionPress={(action) => {
+            if (action.toLowerCase().includes("talkback")) {
+              router.push(routes.talkbackChat);
+              return;
+            }
+
+            void generate(action.toLowerCase().includes("explain") ? "explain" : "short_summary");
+          }}
+          onContinue={() => router.push(routes.talkbackChat)}
+        />
+
         <ScreenCard eyebrow="Generate" title="AI actions">
           {generationActions.map((action) => (
             <PrimaryButton
@@ -184,6 +198,8 @@ export default function SummaryRoute() {
           <PrimaryButton disabled={activeTask !== null} label="Ask TalkBack follow-up" onPress={() => router.push(routes.talkbackChat)} variant="ghost" />
           <PrimaryButton disabled={isSaving} label={isSaving ? "Saving..." : saveStatus} onPress={saveToLibrary} variant="secondary" />
         </ScreenCard>
+
+        <AgentTimelinePanel runs={session.agentRuns} />
       </View>
     </ScrollView>
   );

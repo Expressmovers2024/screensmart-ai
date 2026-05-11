@@ -12,7 +12,7 @@ export type AiModelRoute = {
   fallbacks: string[];
 };
 
-const LOW_COST_OPENROUTER_MODELS: AiModelCandidate[] = [
+const FREE_OPENROUTER_MODELS: AiModelCandidate[] = [
   {
     id: "deepseek/deepseek-chat-v3.1:free",
     label: "DeepSeek Chat free",
@@ -26,9 +26,9 @@ const LOW_COST_OPENROUTER_MODELS: AiModelCandidate[] = [
     vendor: "qwen"
   },
   {
-    id: "google/gemini-2.0-flash-001",
-    label: "Gemini 2.0 Flash low-cost",
-    priceTier: "low-cost",
+    id: "google/gemini-2.0-flash-exp:free",
+    label: "Gemini 2.0 Flash free",
+    priceTier: "free",
     vendor: "google"
   },
   {
@@ -40,11 +40,11 @@ const LOW_COST_OPENROUTER_MODELS: AiModelCandidate[] = [
 ];
 
 const DEFAULT_MODELS: Record<AiProviderId, string> = {
-  anthropic: "claude-3-5-haiku-latest",
-  gemini: "gemini-1.5-flash",
-  ollama: "llama3.1",
-  openai: "gpt-4o-mini",
-  openrouter: LOW_COST_OPENROUTER_MODELS[0].id,
+  anthropic: "screensmart-disabled-provider",
+  gemini: "google/gemini-2.0-flash-exp:free",
+  ollama: "screensmart-disabled-provider",
+  openai: "screensmart-disabled-provider",
+  openrouter: FREE_OPENROUTER_MODELS[0].id,
   placeholder: "screensmart-mock-model"
 };
 
@@ -52,12 +52,12 @@ const DEFAULT_OPENROUTER_ROUTES: Record<AiTask, string[]> = {
   detailed_summary: [
     "qwen/qwen3-235b-a22b:free",
     "deepseek/deepseek-chat-v3.1:free",
-    "google/gemini-2.0-flash-001"
+    "google/gemini-2.0-flash-exp:free"
   ],
   explain: [
     "deepseek/deepseek-chat-v3.1:free",
     "qwen/qwen3-235b-a22b:free",
-    "google/gemini-2.0-flash-001"
+    "google/gemini-2.0-flash-exp:free"
   ],
   key_points: [
     "qwen/qwen3-235b-a22b:free",
@@ -67,10 +67,10 @@ const DEFAULT_OPENROUTER_ROUTES: Record<AiTask, string[]> = {
   short_summary: [
     "deepseek/deepseek-chat-v3.1:free",
     "qwen/qwen3-235b-a22b:free",
-    "google/gemini-2.0-flash-001"
+    "google/gemini-2.0-flash-exp:free"
   ],
   talkback_answer: [
-    "google/gemini-2.0-flash-001",
+    "google/gemini-2.0-flash-exp:free",
     "deepseek/deepseek-chat-v3.1:free",
     "qwen/qwen3-235b-a22b:free"
   ]
@@ -129,11 +129,11 @@ export function getFallbackModel(providerId: AiProviderId) {
 }
 
 export function listLowCostOpenRouterModels() {
-  return LOW_COST_OPENROUTER_MODELS;
+  return FREE_OPENROUTER_MODELS;
 }
 
 function readConfiguredModels(envKeys: string[]) {
-  return envKeys.flatMap((key) => splitModels(process.env[key])).filter(Boolean);
+  return envKeys.flatMap((key) => splitModels(process.env[key])).filter(isAllowedFreeModel);
 }
 
 function splitModels(value?: string) {
@@ -145,4 +145,8 @@ function splitModels(value?: string) {
 
 function dedupeModels(models: string[]) {
   return Array.from(new Set(models));
+}
+
+function isAllowedFreeModel(model: string) {
+  return FREE_OPENROUTER_MODELS.some((candidate) => candidate.id === model) || model.endsWith(":free");
 }

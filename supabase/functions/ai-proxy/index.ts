@@ -47,6 +47,12 @@ const OPENROUTER_URL = "https://openrouter.ai/api/v1/chat/completions";
 const DEFAULT_MODEL = "deepseek/deepseek-chat-v3.1:free";
 const REQUEST_TIMEOUT_MS = 25_000;
 const MAX_FALLBACK_MODELS = 3;
+const ALLOWED_FREE_OPENROUTER_MODELS = new Set([
+  "deepseek/deepseek-chat-v3.1:free",
+  "qwen/qwen3-235b-a22b:free",
+  "google/gemini-2.0-flash-exp:free",
+  "mistralai/mistral-7b-instruct:free"
+]);
 
 const corsHeaders = {
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type, x-screensmart-app",
@@ -160,11 +166,11 @@ async function callOpenRouter(input: {
 
 function getModelQueue(body: AiProxyRequest) {
   const primaryModel = body.preferredModel || body.model || Deno.env.get("OPENROUTER_DEFAULT_MODEL") || DEFAULT_MODEL;
-  const fallbackModels = (body.fallbackModels ?? [])
-    .filter((model) => typeof model === "string" && model.trim().length > 0)
+  const fallbackModels = [primaryModel, ...(body.fallbackModels ?? [])]
+    .filter((model) => typeof model === "string" && isAllowedFreeModel(model.trim()))
     .slice(0, MAX_FALLBACK_MODELS);
 
-  return Array.from(new Set([primaryModel, ...fallbackModels]));
+  return Array.from(new Set(fallbackModels.length > 0 ? fallbackModels : [DEFAULT_MODEL]));
 }
 
 function buildMessages(body: AiProxyRequest): ChatMessage[] {
@@ -270,4 +276,8 @@ function normalizeTemperature(value?: number) {
 
 function truncate(value: string, maxLength: number) {
   return value.length <= maxLength ? value : `${value.slice(0, maxLength)}...`;
+}
+
+function isAllowedFreeModel(model: string) {
+  return ALLOWED_FREE_OPENROUTER_MODELS.has(model) || model.endsWith(":free");
 }

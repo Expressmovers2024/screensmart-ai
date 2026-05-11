@@ -5,11 +5,14 @@ import { Image, ScrollView, Text, View } from "react-native";
 
 import { LoadingState, PrimaryButton, ReadableTextBlock, ScreenCard } from "@/components/ui";
 import { routes } from "@/constants/routes";
-import { ocrService, type OcrProcessingStatus } from "@/services/ocr";
+import type { OcrProcessingStatus } from "@/services/ocr";
 import { storageService } from "@/services/storage";
+import { OrchestratorAgent } from "@/src/agents";
 import { useSessionStore } from "@/store/sessionStore";
 import type { OcrResult, UploadedScreenshot } from "@/types/screenSession";
 import { createId } from "@/utils/createId";
+
+const orchestratorAgent = new OrchestratorAgent();
 
 export default function UploadScreenshotRoute() {
   const router = useRouter();
@@ -68,36 +71,29 @@ export default function UploadScreenshotRoute() {
     setStatusMessage("Preparing screenshot for OCR...");
 
     try {
-      const ocr = await ocrService.extractText({
+      const result = await orchestratorAgent.runScreenshotFlow({
         image: selectedImage,
         sessionId,
-        onProgress: (event) => {
-          setStatus(event.status);
-          setProgress(event.progress);
-          setStatusMessage(event.message);
+        onProgress: (message) => {
+          setStatus("processing");
+          setProgress((currentProgress) => Math.max(currentProgress, 0.35));
+          setStatusMessage(message);
         }
       });
-
-      const nextSession = {
-        id: sessionId,
-        createdAt: new Date().toISOString(),
-        ocr,
-        screenshot: ocr.sourceImage
-      };
       const savedSession = {
-        ...nextSession,
+        ...result.session,
         savedAt: new Date().toISOString()
       };
 
-      setOcrResult(ocr);
+      setOcrResult(result.session.ocr ?? null);
       setCurrentSession(savedSession);
       setStatus("complete");
       setProgress(1);
-      setImage(ocr.sourceImage);
-      setStatusMessage("OCR complete. Review the extracted text below.");
+      setImage(result.session.ocr?.sourceImage ?? selectedImage);
+      setStatusMessage("Agent workflow complete. Review the extracted text and intelligence below.");
       try {
         await storageService.saveScreenSession(savedSession);
-        setStatusMessage("OCR complete and saved locally. Review the extracted text below.");
+        setStatusMessage("Agent workflow complete and saved locally. Review the results below.");
       } catch (storageError) {
         setErrorMessage(
           storageError instanceof Error

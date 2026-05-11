@@ -3,6 +3,7 @@ import * as Clipboard from "expo-clipboard";
 import { useRouter } from "expo-router";
 import { Image, ScrollView, Text, View } from "react-native";
 
+import { AgentTimelinePanel, ScreenIntelligenceCards } from "@/components/agents";
 import { PrimaryButton, ReadableTextBlock, RetryState, ScreenCard } from "@/components/ui";
 import { routes } from "@/constants/routes";
 import { storageService } from "@/services/storage";
@@ -49,6 +50,22 @@ export default function ScanResultRoute() {
         setIsSaving(false);
       }
     }
+  };
+
+  const handleSuggestedAction = (action: string) => {
+    const normalized = action.toLowerCase();
+
+    if (normalized.includes("talkback") || normalized.includes("risk")) {
+      router.push(routes.talkbackChat);
+      return;
+    }
+
+    if (normalized.includes("save")) {
+      void saveToLibrary();
+      return;
+    }
+
+    router.push(routes.summary);
   };
 
   if (!currentSession || !currentSession.ocr) {
@@ -99,6 +116,14 @@ export default function ScanResultRoute() {
           <PrimaryButton disabled={isSaving} label={isSaving ? "Saving..." : saveStatus} onPress={saveToLibrary} variant="secondary" />
           {errorMessage ? <RetryState title="Action failed" message={errorMessage} onRetry={saveToLibrary} /> : null}
         </ScreenCard>
+
+        <ScreenIntelligenceCards
+          intelligence={currentSession.screenIntelligence}
+          onActionPress={handleSuggestedAction}
+          onContinue={() => router.push(routes.summary)}
+        />
+
+        <AgentTimelinePanel runs={currentSession.agentRuns} />
 
         <ScreenCard title="Next steps">
           <Text className="text-base leading-7 text-slate-300">

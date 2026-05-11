@@ -35,12 +35,69 @@ Top-level architecture:
 - `app/`
 - `components/`
 - `services/`
+- `src/agents/`
 - `agents/`
 - `store/`
 - `hooks/`
 - `utils/`
 - `types/`
 - `constants/`
+
+## Modular agent architecture
+
+ScreenSmart now includes the first Visual AI Workflow OS agent layer under
+`src/agents/`. The app keeps the existing OCR, AI, TTS, storage, and routing
+services, while agents coordinate those services into a reusable workflow.
+
+Core screenshot workflow:
+
+```text
+Screenshot Upload
+→ OrchestratorAgent
+→ OCRAgent
+→ SafetyAgent
+→ VisionAgent
+→ SummaryAgent
+→ Suggested Actions
+→ TalkBackAgent
+→ NotesAgent
+→ MemoryAgent
+```
+
+Agent structure:
+
+- `src/agents/core/AgentTypes.ts` defines `AgentRun`, statuses, departments, context, and `ScreenIntelligenceOutput`.
+- `src/agents/core/BaseAgent.ts` provides shared status, input/output/error state, timeline logging, and safe fallback behavior.
+- `src/agents/core/OrchestratorAgent.ts` runs the screenshot workflow and stores `agentRuns` plus `screenIntelligence` on the session.
+- `src/agents/core/AgentRegistry.ts` registers ScreenSmart, research, browser, and engineering agents.
+- `src/agents/screensmart/` contains the mobile-first OCR, vision, summary, explain, TalkBack, notes, voice, memory, and safety agents.
+- `src/agents/research/`, `src/agents/browser/`, and `src/agents/engineering/` contain safe production stubs for future departments. Browser control, web automation, coding automation, and external research are intentionally inactive in this MVP.
+
+Screen Intelligence output:
+
+```ts
+{
+  screenType: string;
+  detectedTask: string;
+  keyEntities: string[];
+  summary: string;
+  suggestedActions: string[];
+  confidence: number;
+}
+```
+
+The OCR result and summary screens render:
+
+- Screen Type Badge
+- Detected Task Card
+- Suggested Actions Buttons
+- Agent Timeline Panel
+- Continue This Task button
+
+All AI-producing agents continue to use the existing `aiService`, which routes
+through `EXPO_PUBLIC_AI_PROXY_URL` and the Supabase `ai-proxy` function when
+configured. If the proxy is unavailable, agents use safe placeholder fallbacks.
+Client and Edge Function model guardrails allow only free OpenRouter model IDs.
 
 The upload and OCR routes now include the first MVP flow:
 
@@ -49,6 +106,7 @@ The upload and OCR routes now include the first MVP flow:
 - OCR preprocessing/loading progress
 - Expo Go-safe placeholder OCR through `services/ocr/` for temporary MVP testing
 - readable OCR result layout
+- orchestrated Screen Intelligence and Agent Timeline output
 - copy extracted text
 - automatic local save for the current OCR session through the storage service
 - AI summary generation grounded in OCR text, with retry/error states
@@ -120,13 +178,15 @@ Use this checklist for the first complete ScreenSmart AI test pass:
 4. Grant photo library permission and choose any screenshot.
 5. Confirm OCR progress appears, then verify placeholder extracted text, confidence, and the image preview render.
 6. Tap **Open OCR result** and confirm the readable OCR screen loads.
-7. Tap **Generate AI summary**.
-8. Generate a short summary and confirm loading, error retry, fallback labeling, and summary text behavior.
-9. Tap **Listen to summary** and confirm the audio reader opens, loads device voices, and play/pause/stop plus previous/next sentence controls respond.
-10. Tap **Ask TalkBack follow-up**, send a question, and confirm the answer is grounded in the current OCR text.
-11. Return to Home or Library and confirm the session appears in recent activity/history.
-12. Open a saved session card and confirm the saved OCR/summary context reloads.
-13. Use **Retry scan**, **Retry generation**, and TalkBack retry paths if a provider or permission error is encountered.
+7. Confirm Screen Type, Detected Task, Suggested Actions, and Agent Timeline cards appear.
+8. Confirm the timeline includes OCRAgent, VisionAgent, SummaryAgent, TalkBackAgent, NotesAgent, and MemoryAgent statuses.
+9. Tap **Generate AI summary**.
+10. Generate or retry a short summary and confirm loading, error retry, fallback labeling, and summary text behavior.
+11. Tap **Listen to summary** and confirm the audio reader opens, loads device voices, and play/pause/stop plus previous/next sentence controls respond.
+12. Tap **Ask TalkBack follow-up**, send a question, and confirm the answer is grounded in the current OCR text.
+13. Return to Home or Library and confirm the session appears in recent activity/history.
+14. Open a saved session card and confirm the saved OCR/summary context reloads.
+15. Use **Retry scan**, **Retry generation**, and TalkBack retry paths if a provider or permission error is encountered.
 
 ## Mock fallback handling
 
@@ -139,7 +199,7 @@ Use this checklist for the first complete ScreenSmart AI test pass:
   - `EXPO_PUBLIC_OPENROUTER_BULLET_MODELS`
   - `EXPO_PUBLIC_OPENROUTER_EXPLAIN_MODELS`
   - `EXPO_PUBLIC_OPENROUTER_TALKBACK_MODELS`
-- Default routes prefer low-cost/free OpenRouter-compatible models from DeepSeek, Qwen, Gemini Flash, and Mistral.
+- Default routes allow only free OpenRouter-compatible models from DeepSeek, Qwen, Gemini Flash, and Mistral. Client and Edge Function guardrails reject paid model IDs.
 - Local MVP storage uses AsyncStorage through the storage abstraction when Supabase env vars are absent.
 - Supabase remains a query-ready architecture path, but real multi-user auth and RLS-backed persistence are not part of this MVP test pass.
 - TTS uses Expo Speech and falls back to built-in voice labels if no native voices are reported by the device.
@@ -154,7 +214,7 @@ For real MVP AI responses, point `EXPO_PUBLIC_AI_PROXY_URL` at a backend or Supa
   "provider": "openrouter",
   "task": "short_summary",
   "model": "deepseek/deepseek-chat-v3.1:free",
-  "fallbackModels": ["qwen/qwen3-235b-a22b:free", "google/gemini-2.0-flash-001"],
+  "fallbackModels": ["qwen/qwen3-235b-a22b:free", "google/gemini-2.0-flash-exp:free"],
   "temperature": 0.2,
   "messages": [
     { "role": "system", "content": "..." },
@@ -298,8 +358,8 @@ Only expose the proxy URL and public model names to Expo:
 
 ```bash
 EXPO_PUBLIC_AI_PROXY_URL=https://<project-ref>.supabase.co/functions/v1/ai-proxy
-EXPO_PUBLIC_OPENROUTER_SUMMARY_MODELS=deepseek/deepseek-chat-v3.1:free,qwen/qwen3-235b-a22b:free,google/gemini-2.0-flash-001
-EXPO_PUBLIC_OPENROUTER_TALKBACK_MODELS=google/gemini-2.0-flash-001,deepseek/deepseek-chat-v3.1:free,qwen/qwen3-235b-a22b:free
+EXPO_PUBLIC_OPENROUTER_SUMMARY_MODELS=deepseek/deepseek-chat-v3.1:free,qwen/qwen3-235b-a22b:free,google/gemini-2.0-flash-exp:free
+EXPO_PUBLIC_OPENROUTER_TALKBACK_MODELS=google/gemini-2.0-flash-exp:free,deepseek/deepseek-chat-v3.1:free,qwen/qwen3-235b-a22b:free
 ```
 
 Never add `OPENROUTER_API_KEY` or any provider secret to an `EXPO_PUBLIC_*`
