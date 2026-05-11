@@ -20,6 +20,10 @@ export type AgentRun = {
   status: AgentStatus;
   input: any;
   output: any;
+  inputSummary?: string;
+  outputSummary?: string;
+  confidence?: number;
+  durationMs?: number;
   error?: string;
   startedAt: string;
   completedAt?: string;
@@ -27,11 +31,35 @@ export type AgentRun = {
 
 export type ScreenIntelligenceOutput = {
   screenType: string;
+  appOrWebsite: string;
   detectedTask: string;
+  userIntentGuess: string;
   keyEntities: string[];
-  summary: string;
+  visibleProblems: string[];
+  importantNumbers: string[];
   suggestedActions: string[];
   confidence: number;
+  reasoningSummary: string;
+  summary: string;
+};
+
+export type WorkflowCheckpointStatus = "open" | "completed" | "skipped";
+
+export type WorkflowCheckpoint = {
+  id: string;
+  sessionId: string;
+  title: string;
+  description: string;
+  agentId: string;
+  createdAt: string;
+  status: WorkflowCheckpointStatus;
+  nextActions: string[];
+};
+
+export type ContinueTaskPlan = {
+  checkpoint: WorkflowCheckpoint;
+  recommendedNextSteps: string[];
+  reasoningSummary: string;
 };
 
 export type AgentTimelineEntry = AgentRun;
@@ -43,6 +71,7 @@ export type AgentContext = {
   ocr?: OcrExtractionResponse;
   summary?: AiResponse;
   screenIntelligence?: ScreenIntelligenceOutput;
+  workflowCheckpoints?: WorkflowCheckpoint[];
   chatHistory?: ChatMessage[];
   question?: string;
   onProgress?: (message: string) => void;

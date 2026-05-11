@@ -23,10 +23,15 @@ export function ScreenIntelligenceCards({ intelligence, onActionPress, onContinu
   return (
     <View className="gap-5">
       <ScreenCard eyebrow="Screen type" title={intelligence.screenType}>
-        <View className="self-start rounded-full bg-electric/20 px-4 py-2">
-          <Text className="text-sm font-black uppercase tracking-[1.5px] text-electric">
-            {Math.round(intelligence.confidence * 100)}% confidence
-          </Text>
+        <View className="flex-row flex-wrap gap-2">
+          <View className="rounded-full bg-electric/20 px-4 py-2">
+            <Text className="text-sm font-black uppercase tracking-[1.5px] text-electric">
+              {Math.round(intelligence.confidence * 100)}% confidence
+            </Text>
+          </View>
+          <View className="rounded-full bg-white/10 px-4 py-2">
+            <Text className="text-sm font-black uppercase tracking-[1.5px] text-slate-300">{intelligence.appOrWebsite}</Text>
+          </View>
         </View>
         <Text className="mt-4 text-base leading-7 text-slate-300">{intelligence.summary}</Text>
       </ScreenCard>
@@ -35,6 +40,27 @@ export function ScreenIntelligenceCards({ intelligence, onActionPress, onContinu
         <Text className="text-base leading-7 text-slate-300">
           Key entities: {intelligence.keyEntities.length > 0 ? intelligence.keyEntities.join(", ") : "none detected"}
         </Text>
+        <Text className="mt-3 text-base leading-7 text-slate-300">Intent guess: {intelligence.userIntentGuess}</Text>
+        {intelligence.importantNumbers.length > 0 ? (
+          <Text className="mt-3 text-base leading-7 text-slate-300">
+            Important numbers: {intelligence.importantNumbers.join(", ")}
+          </Text>
+        ) : null}
+      </ScreenCard>
+
+      <ScreenCard eyebrow="Why this matters" title="Reasoning summary">
+        <Text className="text-base leading-7 text-slate-300">{intelligence.reasoningSummary}</Text>
+        {intelligence.visibleProblems.length > 0 ? (
+          <View className="mt-4 gap-2">
+            {intelligence.visibleProblems.map((problem) => (
+              <Text className="rounded-2xl bg-amber-500/10 px-4 py-3 text-base leading-6 text-amber-100" key={problem}>
+                {problem}
+              </Text>
+            ))}
+          </View>
+        ) : (
+          <Text className="mt-3 text-base leading-7 text-mint">No obvious visible problems detected.</Text>
+        )}
       </ScreenCard>
 
       <ScreenCard eyebrow="Suggested actions" title="Next best moves">

@@ -10,12 +10,14 @@ export class AgentTimeline {
     agentId: string;
     agentName: string;
     input: any;
+    inputSummary?: string;
   }) {
     const run: AgentRun = {
       id: createId("agent-run"),
       agentId: input.agentId,
       agentName: input.agentName,
       input: input.input,
+      inputSummary: input.inputSummary ?? summarizePayload(input.input),
       output: null,
       sessionId: input.sessionId,
       startedAt: new Date().toISOString(),
@@ -34,8 +36,11 @@ export class AgentTimeline {
         ? {
             ...run,
             completedAt,
+            confidence: extractConfidence(output),
+            durationMs: new Date(completedAt).getTime() - new Date(run.startedAt).getTime(),
             error,
             output,
+            outputSummary: error ?? summarizePayload(output),
             status
           }
         : run
@@ -51,4 +56,38 @@ export class AgentTimeline {
   merge(runs: AgentRun[]) {
     this.runs = [...this.runs, ...runs];
   }
+}
+
+function summarizePayload(payload: unknown) {
+  if (!payload) {
+    return "No payload.";
+  }
+
+  if (typeof payload === "string") {
+    return payload.slice(0, 180);
+  }
+
+  if (typeof payload === "object") {
+    const record = payload as Record<string, unknown>;
+    const summary = record.summary ?? record.content ?? record.message ?? record.detectedTask ?? record.title ?? record.extractedText;
+
+    if (typeof summary === "string") {
+      return summary.slice(0, 180);
+    }
+
+    const keys = Object.keys(record).slice(0, 5);
+    return keys.length > 0 ? `Fields: ${keys.join(", ")}` : "Object payload.";
+  }
+
+  return String(payload);
+}
+
+function extractConfidence(payload: unknown) {
+  if (!payload || typeof payload !== "object") {
+    return undefined;
+  }
+
+  const confidence = (payload as Record<string, unknown>).confidence;
+
+  return typeof confidence === "number" ? confidence : undefined;
 }

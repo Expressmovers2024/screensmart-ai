@@ -78,11 +78,16 @@ Screen Intelligence output:
 ```ts
 {
   screenType: string;
+  appOrWebsite: string;
   detectedTask: string;
+  userIntentGuess: string;
   keyEntities: string[];
-  summary: string;
+  visibleProblems: string[];
+  importantNumbers: string[];
   suggestedActions: string[];
   confidence: number;
+  reasoningSummary: string;
+  summary: string;
 }
 ```
 
@@ -93,11 +98,18 @@ The OCR result and summary screens render:
 - Suggested Actions Buttons
 - Agent Timeline Panel
 - Continue This Task button
+- Workflow Checkpoint card
+- tags, confidence indicators, and a “Why this matters” card
 
 All AI-producing agents continue to use the existing `aiService`, which routes
 through `EXPO_PUBLIC_AI_PROXY_URL` and the Supabase `ai-proxy` function when
 configured. If the proxy is unavailable, agents use safe placeholder fallbacks.
 Client and Edge Function model guardrails allow only free OpenRouter model IDs.
+
+Continue This Task creates an open workflow checkpoint on the current session.
+The checkpoint stores 3-5 next actions, the orchestrator reasoning summary, the
+agent that created it, and open/completed/skipped status for future workflow
+continuity.
 
 The upload and OCR routes now include the first MVP flow:
 

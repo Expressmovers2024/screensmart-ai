@@ -3,20 +3,25 @@ import * as Clipboard from "expo-clipboard";
 import { useRouter } from "expo-router";
 import { Image, ScrollView, Text, View } from "react-native";
 
-import { AgentTimelinePanel, ScreenIntelligenceCards } from "@/components/agents";
+import { AgentTimelinePanel, ScreenIntelligenceCards, WorkflowCheckpointCard } from "@/components/agents";
 import { PrimaryButton, ReadableTextBlock, RetryState, ScreenCard } from "@/components/ui";
 import { routes } from "@/constants/routes";
 import { storageService } from "@/services/storage";
+import { OrchestratorAgent, type ContinueTaskPlan } from "@/src/agents";
 import { useSessionStore } from "@/store/sessionStore";
+
+const orchestratorAgent = new OrchestratorAgent();
 
 export default function ScanResultRoute() {
   const router = useRouter();
   const currentSession = useSessionStore((state) => state.currentSession);
+  const updateCurrentSession = useSessionStore((state) => state.updateCurrentSession);
   const saveCurrentSessionToLibrary = useSessionStore((state) => state.saveCurrentSessionToLibrary);
   const [copyStatus, setCopyStatus] = useState("Copy extracted text");
   const [saveStatus, setSaveStatus] = useState("Save to library");
   const [isSaving, setIsSaving] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  const [continuePlan, setContinuePlan] = useState<ContinueTaskPlan | null>(null);
 
   const extractedText = currentSession?.ocr?.extractedText;
 
@@ -55,8 +60,13 @@ export default function ScanResultRoute() {
   const handleSuggestedAction = (action: string) => {
     const normalized = action.toLowerCase();
 
-    if (normalized.includes("talkback") || normalized.includes("risk")) {
+    if (normalized.includes("follow-up") || normalized.includes("talkback") || normalized.includes("risk")) {
       router.push(routes.talkbackChat);
+      return;
+    }
+
+    if (normalized.includes("notes")) {
+      router.push(routes.notes);
       return;
     }
 
@@ -65,7 +75,30 @@ export default function ScanResultRoute() {
       return;
     }
 
+    if (normalized.includes("continue") || normalized.includes("research")) {
+      void continueTask();
+      return;
+    }
+
     router.push(routes.summary);
+  };
+
+  const continueTask = async () => {
+    if (!currentSession) {
+      return;
+    }
+
+    const plan = await orchestratorAgent.continueTask(currentSession);
+    const workflowCheckpoints = [plan.checkpoint, ...(currentSession.workflowCheckpoints ?? [])];
+    const nextSession = {
+      ...currentSession,
+      lastActiveAt: new Date().toISOString(),
+      workflowCheckpoints
+    };
+
+    setContinuePlan(plan);
+    updateCurrentSession({ lastActiveAt: nextSession.lastActiveAt, workflowCheckpoints });
+    void storageService.saveScreenSession(nextSession);
   };
 
   if (!currentSession || !currentSession.ocr) {
@@ -120,7 +153,14 @@ export default function ScanResultRoute() {
         <ScreenIntelligenceCards
           intelligence={currentSession.screenIntelligence}
           onActionPress={handleSuggestedAction}
-          onContinue={() => router.push(routes.summary)}
+          onContinue={continueTask}
+        />
+
+        <WorkflowCheckpointCard
+          checkpoints={currentSession.workflowCheckpoints}
+          plan={continuePlan}
+          onActionPress={handleSuggestedAction}
+          onContinue={continueTask}
         />
 
         <AgentTimelinePanel runs={currentSession.agentRuns} />

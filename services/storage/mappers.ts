@@ -11,12 +11,24 @@ type AudioEventRow = Database["public"]["Tables"]["audio_events"]["Row"];
 type SettingsRow = Database["public"]["Tables"]["user_settings"]["Row"];
 
 export function toScreenSessionInsert(session: ScreenSession, userId: string) {
+  const ocrPayload = session.ocr
+    ? {
+        ...session.ocr,
+        agentRuns: session.agentRuns,
+        lastActiveAt: session.lastActiveAt,
+        screenIntelligence: session.screenIntelligence,
+        tags: session.tags,
+        title: session.title,
+        workflowCheckpoints: session.workflowCheckpoints
+      }
+    : null;
+
   return {
     id: session.id,
     user_id: userId,
     created_at: session.createdAt,
     extracted_text: session.ocr?.extractedText ?? null,
-    ocr: (session.ocr ?? null) as Json | null,
+    ocr: ocrPayload as Json | null,
     saved_at: session.savedAt ?? null,
     screenshot: (session.screenshot ?? null) as Json | null,
     summary: session.summary ?? null,
@@ -25,13 +37,21 @@ export function toScreenSessionInsert(session: ScreenSession, userId: string) {
 }
 
 export function fromScreenSessionRow(row: ScreenSessionRow): ScreenSession {
+  const ocrPayload = row.ocr as (ScreenSession["ocr"] & Partial<ScreenSession>) | null;
+
   return {
     id: row.id,
+    agentRuns: ocrPayload?.agentRuns,
     createdAt: row.created_at,
-    ocr: row.ocr as ScreenSession["ocr"],
+    lastActiveAt: ocrPayload?.lastActiveAt,
+    ocr: ocrPayload as ScreenSession["ocr"],
     savedAt: row.saved_at ?? undefined,
+    screenIntelligence: ocrPayload?.screenIntelligence,
     screenshot: row.screenshot as ScreenSession["screenshot"],
-    summary: row.summary ?? undefined
+    summary: row.summary ?? undefined,
+    tags: ocrPayload?.tags,
+    title: ocrPayload?.title,
+    workflowCheckpoints: ocrPayload?.workflowCheckpoints
   };
 }
 

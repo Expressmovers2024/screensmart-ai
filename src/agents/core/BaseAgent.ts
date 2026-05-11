@@ -35,6 +35,7 @@ export abstract class BaseAgent<TInput = unknown, TOutput = unknown>
       agentId: this.id,
       agentName: this.name,
       input,
+      inputSummary: this.summarizeInput(input),
       sessionId: context.sessionId
     });
 
@@ -72,6 +73,15 @@ export abstract class BaseAgent<TInput = unknown, TOutput = unknown>
       message: `${this.name} used a safe fallback response.`,
       error
     } as TOutput;
+  }
+
+  protected summarizeInput(input: TInput) {
+    if (!input || typeof input !== "object") {
+      return typeof input === "string" ? input.slice(0, 180) : "No structured input.";
+    }
+
+    const keys = Object.keys(input as Record<string, unknown>).slice(0, 5);
+    return keys.length > 0 ? `Received ${keys.join(", ")}` : "Received object input.";
   }
 }
 

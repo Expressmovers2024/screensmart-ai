@@ -4,7 +4,9 @@ export type {
   AgentExecutionResult,
   AgentRun,
   AgentStatus,
-  ScreenIntelligenceOutput
+  ContinueTaskPlan,
+  ScreenIntelligenceOutput,
+  WorkflowCheckpoint
 } from "./core/AgentTypes";
 export { AgentRegistry, agentRegistry } from "./core/AgentRegistry";
 export { AgentTimeline } from "./core/AgentTimeline";

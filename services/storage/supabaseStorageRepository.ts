@@ -211,7 +211,7 @@ function buildRecentActivity(
       createdAt: session.savedAt ?? session.createdAt,
       session,
       subtitle: session.ocr?.extractedText.slice(0, 90) ?? "OCR session",
-      title: "Saved OCR session",
+      title: session.title ?? "Saved OCR session",
       type: "screen_session"
     })),
     ...notes.map<RecentActivity>((note) => ({

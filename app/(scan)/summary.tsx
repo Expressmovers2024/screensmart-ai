@@ -2,14 +2,17 @@ import { useState } from "react";
 import { useRouter } from "expo-router";
 import { ScrollView, Text, View } from "react-native";
 
-import { AgentTimelinePanel, ScreenIntelligenceCards } from "@/components/agents";
+import { AgentTimelinePanel, ScreenIntelligenceCards, WorkflowCheckpointCard } from "@/components/agents";
 import { LoadingState, PrimaryButton, ReadableTextBlock, ScreenCard } from "@/components/ui";
 import { routes } from "@/constants/routes";
 import { useCurrentSession } from "@/hooks/useCurrentSession";
 import { aiService, type AiResponse, type AiTask } from "@/services/ai";
 import { storageService } from "@/services/storage";
+import { OrchestratorAgent, type ContinueTaskPlan } from "@/src/agents";
 import { useSessionStore } from "@/store/sessionStore";
 import type { ScreenSession } from "@/types/screenSession";
+
+const orchestratorAgent = new OrchestratorAgent();
 
 type GenerationAction = {
   label: string;
@@ -49,6 +52,7 @@ export default function SummaryRoute() {
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [isSaving, setIsSaving] = useState(false);
   const [saveStatus, setSaveStatus] = useState("Save session");
+  const [continuePlan, setContinuePlan] = useState<ContinueTaskPlan | null>(null);
 
   const generate = async (task: AiTask) => {
     if (!session?.ocr) {
@@ -103,6 +107,50 @@ export default function SummaryRoute() {
     }
   };
 
+  const continueTask = async () => {
+    if (!session) {
+      return;
+    }
+
+    const plan = await orchestratorAgent.continueTask(session);
+    const workflowCheckpoints = [plan.checkpoint, ...(session.workflowCheckpoints ?? [])];
+    const lastActiveAt = new Date().toISOString();
+
+    setContinuePlan(plan);
+    updateCurrentSession({ lastActiveAt, workflowCheckpoints });
+    void storageService.saveScreenSession({
+      ...session,
+      lastActiveAt,
+      workflowCheckpoints
+    });
+  };
+
+  const handleSuggestedAction = (action: string) => {
+    const normalized = action.toLowerCase();
+
+    if (normalized.includes("follow-up") || normalized.includes("talkback")) {
+      router.push(routes.talkbackChat);
+      return;
+    }
+
+    if (normalized.includes("notes")) {
+      router.push(routes.notes);
+      return;
+    }
+
+    if (normalized.includes("save")) {
+      void saveToLibrary();
+      return;
+    }
+
+    if (normalized.includes("continue") || normalized.includes("research")) {
+      void continueTask();
+      return;
+    }
+
+    void generate(normalized.includes("explain") ? "explain" : "short_summary");
+  };
+
   if (!session?.ocr) {
     return (
       <ScrollView className="flex-1 bg-ink" contentContainerClassName="px-6 pb-12 pt-14">
@@ -138,15 +186,15 @@ export default function SummaryRoute() {
 
         <ScreenIntelligenceCards
           intelligence={session.screenIntelligence}
-          onActionPress={(action) => {
-            if (action.toLowerCase().includes("talkback")) {
-              router.push(routes.talkbackChat);
-              return;
-            }
+          onActionPress={handleSuggestedAction}
+          onContinue={continueTask}
+        />
 
-            void generate(action.toLowerCase().includes("explain") ? "explain" : "short_summary");
-          }}
-          onContinue={() => router.push(routes.talkbackChat)}
+        <WorkflowCheckpointCard
+          checkpoints={session.workflowCheckpoints}
+          plan={continuePlan}
+          onActionPress={handleSuggestedAction}
+          onContinue={continueTask}
         />
 
         <ScreenCard eyebrow="Generate" title="AI actions">
