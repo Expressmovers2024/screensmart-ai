@@ -3,8 +3,9 @@ import type { AiProviderId, AiTask } from "../types";
 export type AiModelCandidate = {
   id: string;
   label: string;
-  vendor: "deepseek" | "qwen" | "google" | "mistral" | "placeholder" | "other";
+  vendor: "deepseek" | "qwen" | "google" | "mistral" | "meta" | "placeholder" | "other";
   priceTier: "free" | "low-cost" | "mock";
+  capabilities?: Array<"text" | "vision">;
 };
 
 export type AiModelRoute = {
@@ -15,27 +16,45 @@ export type AiModelRoute = {
 const FREE_OPENROUTER_MODELS: AiModelCandidate[] = [
   {
     id: "deepseek/deepseek-chat-v3.1:free",
+    capabilities: ["text"],
     label: "DeepSeek Chat free",
     priceTier: "free",
     vendor: "deepseek"
   },
   {
     id: "qwen/qwen3-235b-a22b:free",
+    capabilities: ["text"],
     label: "Qwen3 free",
     priceTier: "free",
     vendor: "qwen"
   },
   {
     id: "google/gemini-2.0-flash-exp:free",
+    capabilities: ["text", "vision"],
     label: "Gemini 2.0 Flash free",
     priceTier: "free",
     vendor: "google"
   },
   {
     id: "mistralai/mistral-7b-instruct:free",
+    capabilities: ["text"],
     label: "Mistral 7B free",
     priceTier: "free",
     vendor: "mistral"
+  },
+  {
+    id: "qwen/qwen2.5-vl-72b-instruct:free",
+    capabilities: ["vision"],
+    label: "Qwen2.5 VL free",
+    priceTier: "free",
+    vendor: "qwen"
+  },
+  {
+    id: "meta-llama/llama-3.2-11b-vision-instruct:free",
+    capabilities: ["vision"],
+    label: "Llama 3.2 Vision free",
+    priceTier: "free",
+    vendor: "meta"
   }
 ];
 
@@ -73,6 +92,11 @@ const DEFAULT_OPENROUTER_ROUTES: Record<AiTask, string[]> = {
     "google/gemini-2.0-flash-exp:free",
     "deepseek/deepseek-chat-v3.1:free",
     "qwen/qwen3-235b-a22b:free"
+  ],
+  vision_analysis: [
+    "google/gemini-2.0-flash-exp:free",
+    "qwen/qwen2.5-vl-72b-instruct:free",
+    "meta-llama/llama-3.2-11b-vision-instruct:free"
   ]
 };
 
@@ -81,7 +105,8 @@ const TASK_ENV_KEYS: Record<AiTask, string[]> = {
   explain: ["EXPO_PUBLIC_OPENROUTER_EXPLAIN_MODELS"],
   key_points: ["EXPO_PUBLIC_OPENROUTER_BULLET_MODELS"],
   short_summary: ["EXPO_PUBLIC_OPENROUTER_SUMMARY_MODELS"],
-  talkback_answer: ["EXPO_PUBLIC_OPENROUTER_TALKBACK_MODELS"]
+  talkback_answer: ["EXPO_PUBLIC_OPENROUTER_TALKBACK_MODELS"],
+  vision_analysis: ["EXPO_PUBLIC_OPENROUTER_VISION_MODELS"]
 };
 
 export function getModelForTask(providerId: AiProviderId, task: AiTask) {
@@ -130,6 +155,10 @@ export function getFallbackModel(providerId: AiProviderId) {
 
 export function listLowCostOpenRouterModels() {
   return FREE_OPENROUTER_MODELS;
+}
+
+export function listFreeVisionOpenRouterModels() {
+  return FREE_OPENROUTER_MODELS.filter((model) => model.capabilities?.includes("vision"));
 }
 
 function readConfiguredModels(envKeys: string[]) {

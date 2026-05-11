@@ -32,13 +32,17 @@ export type AgentRun = {
 export type ScreenIntelligenceOutput = {
   screenType: string;
   appOrWebsite: string;
+  visualSummary: string;
+  layoutDescription: string;
   detectedTask: string;
   userIntentGuess: string;
   keyEntities: string[];
   visibleProblems: string[];
+  importantVisualElements: string[];
   importantNumbers: string[];
   suggestedActions: string[];
   confidence: number;
+  fallbackUsed: boolean;
   reasoningSummary: string;
   summary: string;
 };

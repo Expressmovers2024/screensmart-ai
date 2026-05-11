@@ -79,13 +79,17 @@ Screen Intelligence output:
 {
   screenType: string;
   appOrWebsite: string;
+  visualSummary: string;
+  layoutDescription: string;
   detectedTask: string;
   userIntentGuess: string;
   keyEntities: string[];
   visibleProblems: string[];
+  importantVisualElements: string[];
   importantNumbers: string[];
   suggestedActions: string[];
   confidence: number;
+  fallbackUsed: boolean;
   reasoningSummary: string;
   summary: string;
 }
@@ -100,11 +104,13 @@ The OCR result and summary screens render:
 - Continue This Task button
 - Workflow Checkpoint card
 - tags, confidence indicators, and a “Why this matters” card
+- Visual Summary, Layout Description, Visible Problems, Important Visual Elements, and an OCR-only fallback badge when vision is unavailable
 
 All AI-producing agents continue to use the existing `aiService`, which routes
 through `EXPO_PUBLIC_AI_PROXY_URL` and the Supabase `ai-proxy` function when
 configured. If the proxy is unavailable, agents use safe placeholder fallbacks.
 Client and Edge Function model guardrails allow only free OpenRouter model IDs.
+When screenshots include base64 image data, `VisionAgent` attempts visual analysis through the Supabase `ai-proxy` using free vision-capable OpenRouter model candidates. If no free vision model is available or the proxy fails, it falls back to OCR-only intelligence.
 
 Continue This Task creates an open workflow checkpoint on the current session.
 The checkpoint stores 3-5 next actions, the orchestrator reasoning summary, the
@@ -255,7 +261,8 @@ Use this checklist for the first complete ScreenSmart AI test pass:
   - `EXPO_PUBLIC_OPENROUTER_BULLET_MODELS`
   - `EXPO_PUBLIC_OPENROUTER_EXPLAIN_MODELS`
   - `EXPO_PUBLIC_OPENROUTER_TALKBACK_MODELS`
-- Default routes allow only free OpenRouter-compatible models from DeepSeek, Qwen, Gemini Flash, and Mistral. Client and Edge Function guardrails reject paid model IDs.
+  - `EXPO_PUBLIC_OPENROUTER_VISION_MODELS`
+- Default routes allow only free OpenRouter-compatible models from DeepSeek, Qwen, Gemini Flash, Mistral, Qwen VL, and Llama Vision. Client and Edge Function guardrails reject paid model IDs.
 - Local MVP storage uses AsyncStorage through the storage abstraction when Supabase env vars are absent.
 - Supabase remains a query-ready architecture path, but real multi-user auth and RLS-backed persistence are not part of this MVP test pass.
 - TTS uses Expo Speech and falls back to built-in voice labels if no native voices are reported by the device.
@@ -271,6 +278,10 @@ For real MVP AI responses, point `EXPO_PUBLIC_AI_PROXY_URL` at a backend or Supa
   "task": "short_summary",
   "model": "deepseek/deepseek-chat-v3.1:free",
   "fallbackModels": ["qwen/qwen3-235b-a22b:free", "google/gemini-2.0-flash-exp:free"],
+  "image": {
+    "base64": "...",
+    "mimeType": "image/jpeg"
+  },
   "temperature": 0.2,
   "messages": [
     { "role": "system", "content": "..." },

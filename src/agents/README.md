@@ -36,9 +36,12 @@ Screenshot Upload
 generates 3-5 recommended next steps, and returns a workflow checkpoint that
 can be saved back onto the session for continuity.
 
-`VisionAgent` produces richer Screen Intelligence including app/website guess,
-user intent, key entities, visible problems, important numbers, confidence,
-reasoning, and suggested actions.
+`VisionAgent` attempts visual screenshot analysis through the Supabase
+`ai-proxy` using free vision-capable model candidates when base64 image data is
+available. It falls back to OCR-only intelligence if the proxy or vision model
+fails. Output includes visual summary, layout description, app/website guess,
+user intent, key entities, visible problems, important visual elements,
+important numbers, confidence, reasoning, and suggested actions.
 
 `MemoryAgent` prepares session title, tags, key entities, summary, workflow
 checkpoints, and last active timestamp for local-first continuity.

@@ -6,6 +6,12 @@ type ChatMessage = {
   body?: string;
 };
 
+type ImageInput = {
+  base64?: string;
+  dataUrl?: string;
+  mimeType?: string;
+};
+
 type OcrContext = {
   sessionId?: string;
   extractedText?: string;
@@ -21,6 +27,9 @@ type AiProxyRequest = {
   chatHistory?: ChatMessage[];
   history?: ChatMessage[];
   messages?: ChatMessage[];
+  image?: ImageInput;
+  imageBase64?: string;
+  imageMimeType?: string;
   model?: string;
   preferredModel?: string;
   fallbackModels?: string[];
@@ -51,7 +60,14 @@ const ALLOWED_FREE_OPENROUTER_MODELS = new Set([
   "deepseek/deepseek-chat-v3.1:free",
   "qwen/qwen3-235b-a22b:free",
   "google/gemini-2.0-flash-exp:free",
-  "mistralai/mistral-7b-instruct:free"
+  "mistralai/mistral-7b-instruct:free",
+  "qwen/qwen2.5-vl-72b-instruct:free",
+  "meta-llama/llama-3.2-11b-vision-instruct:free"
+]);
+const ALLOWED_FREE_VISION_MODELS = new Set([
+  "google/gemini-2.0-flash-exp:free",
+  "qwen/qwen2.5-vl-72b-instruct:free",
+  "meta-llama/llama-3.2-11b-vision-instruct:free"
 ]);
 
 const corsHeaders = {
@@ -86,6 +102,7 @@ Deno.serve(async (request) => {
 
   const modelQueue = getModelQueue(body);
   const messages = buildMessages(body);
+  const imageDataUrl = getImageDataUrl(body);
 
   if (messages.length === 0) {
     return jsonResponse({ error: "AI request requires prompt, OCR text/context, chat history, or messages" }, 400);
@@ -98,6 +115,7 @@ Deno.serve(async (request) => {
     try {
       const openRouterResponse = await callOpenRouter({
         apiKey: openRouterApiKey,
+        imageDataUrl,
         messages,
         model,
         temperature
@@ -120,6 +138,7 @@ Deno.serve(async (request) => {
 
 async function callOpenRouter(input: {
   apiKey: string;
+  imageDataUrl?: string;
   messages: ChatMessage[];
   model: string;
   temperature: number;
@@ -130,10 +149,7 @@ async function callOpenRouter(input: {
   try {
     const response = await fetch(OPENROUTER_URL, {
       body: JSON.stringify({
-        messages: input.messages.map((message) => ({
-          content: message.content ?? message.body ?? "",
-          role: message.role
-        })),
+        messages: buildOpenRouterMessages(input.messages, input.imageDataUrl),
         model: input.model,
         temperature: input.temperature
       }),
@@ -166,11 +182,14 @@ async function callOpenRouter(input: {
 
 function getModelQueue(body: AiProxyRequest) {
   const primaryModel = body.preferredModel || body.model || Deno.env.get("OPENROUTER_DEFAULT_MODEL") || DEFAULT_MODEL;
+  const hasImage = Boolean(getImageDataUrl(body));
   const fallbackModels = [primaryModel, ...(body.fallbackModels ?? [])]
-    .filter((model) => typeof model === "string" && isAllowedFreeModel(model.trim()))
+    .filter((model) => typeof model === "string" && isAllowedFreeModel(model.trim(), hasImage))
     .slice(0, MAX_FALLBACK_MODELS);
 
-  return Array.from(new Set(fallbackModels.length > 0 ? fallbackModels : [DEFAULT_MODEL]));
+  return Array.from(
+    new Set(fallbackModels.length > 0 ? fallbackModels : [hasImage ? "google/gemini-2.0-flash-exp:free" : DEFAULT_MODEL])
+  );
 }
 
 function buildMessages(body: AiProxyRequest): ChatMessage[] {
@@ -278,6 +297,57 @@ function truncate(value: string, maxLength: number) {
   return value.length <= maxLength ? value : `${value.slice(0, maxLength)}...`;
 }
 
-function isAllowedFreeModel(model: string) {
-  return ALLOWED_FREE_OPENROUTER_MODELS.has(model) || model.endsWith(":free");
+function isAllowedFreeModel(model: string, requiresVision = false) {
+  if (!ALLOWED_FREE_OPENROUTER_MODELS.has(model) && !model.endsWith(":free")) {
+    return false;
+  }
+
+  return requiresVision ? ALLOWED_FREE_VISION_MODELS.has(model) : true;
+}
+
+function getImageDataUrl(body: AiProxyRequest) {
+  const dataUrl = body.image?.dataUrl;
+
+  if (dataUrl?.startsWith("data:image/")) {
+    return dataUrl;
+  }
+
+  const base64 = body.imageBase64 ?? body.image?.base64;
+
+  if (!base64) {
+    return undefined;
+  }
+
+  const mimeType = body.imageMimeType ?? body.image?.mimeType ?? "image/jpeg";
+  return `data:${mimeType};base64,${base64}`;
+}
+
+function buildOpenRouterMessages(messages: ChatMessage[], imageDataUrl?: string) {
+  return messages.map((message, index) => {
+    const content = message.content ?? message.body ?? "";
+    const isLastUserMessage = imageDataUrl && message.role === "user" && index === messages.length - 1;
+
+    if (!isLastUserMessage) {
+      return {
+        content,
+        role: message.role
+      };
+    }
+
+    return {
+      role: message.role,
+      content: [
+        {
+          text: content,
+          type: "text"
+        },
+        {
+          image_url: {
+            url: imageDataUrl
+          },
+          type: "image_url"
+        }
+      ]
+    };
+  });
 }

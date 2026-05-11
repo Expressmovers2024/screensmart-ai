@@ -10,7 +10,8 @@ export type AiTask =
   | "detailed_summary"
   | "key_points"
   | "explain"
-  | "talkback_answer";
+  | "talkback_answer"
+  | "vision_analysis";
 
 export type OcrContext = {
   sessionId: string;

@@ -1,6 +1,8 @@
 export type UploadedScreenshot = {
   uri: string;
+  base64?: string | null;
   fileName?: string | null;
+  mimeType?: string | null;
   width?: number;
   height?: number;
 };

@@ -61,7 +61,11 @@ export class OrchestratorAgent extends BaseAgent<ScreenshotFlowInput, Screenshot
 
     context.onProgress?.("OrchestratorAgent routing screenshot through the agent swarm...");
 
-    const ocr = (await this.ocrAgent.execute({ image: input.image, sessionId: input.sessionId }, context)).output;
+    const rawOcr = (await this.ocrAgent.execute({ image: input.image, sessionId: input.sessionId }, context)).output;
+    const ocr = {
+      ...rawOcr,
+      sourceImage: stripImagePayload(rawOcr.sourceImage)
+    };
     context.ocr = ocr;
 
     const safety = (await this.safetyAgent.execute({ text: ocr.extractedText }, context)).output;
@@ -69,7 +73,8 @@ export class OrchestratorAgent extends BaseAgent<ScreenshotFlowInput, Screenshot
       await this.visionAgent.execute(
         {
           confidence: ocr.confidence,
-          extractedText: ocr.extractedText
+          extractedText: ocr.extractedText,
+          image: input.image
         },
         context
       )
@@ -179,6 +184,16 @@ export class OrchestratorAgent extends BaseAgent<ScreenshotFlowInput, Screenshot
   private createSessionTitle(intelligence?: ScreenIntelligenceOutput) {
     return intelligence ? `${intelligence.screenType}: ${intelligence.detectedTask}`.slice(0, 80) : "ScreenSmart session";
   }
+}
+
+function stripImagePayload(image: UploadedScreenshot): UploadedScreenshot {
+  return {
+    fileName: image.fileName,
+    height: image.height,
+    mimeType: image.mimeType,
+    uri: image.uri,
+    width: image.width
+  };
 }
 
 function mergeActions(actions: string[], warnings: string[]) {

@@ -40,6 +40,7 @@ export default function UploadScreenshotRoute() {
 
     const result = await ImagePicker.launchImageLibraryAsync({
       allowsEditing: false,
+      base64: true,
       mediaTypes: ["images"],
       quality: 1
     });
@@ -51,8 +52,10 @@ export default function UploadScreenshotRoute() {
 
     const asset = result.assets[0];
     const selectedImage: UploadedScreenshot = {
+      base64: asset.base64,
       fileName: asset.fileName,
       height: asset.height,
+      mimeType: asset.mimeType,
       uri: asset.uri,
       width: asset.width
     };

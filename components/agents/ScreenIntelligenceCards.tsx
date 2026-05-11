@@ -32,8 +32,14 @@ export function ScreenIntelligenceCards({ intelligence, onActionPress, onContinu
           <View className="rounded-full bg-white/10 px-4 py-2">
             <Text className="text-sm font-black uppercase tracking-[1.5px] text-slate-300">{intelligence.appOrWebsite}</Text>
           </View>
+          {intelligence.fallbackUsed ? (
+            <View className="rounded-full bg-amber-500/20 px-4 py-2">
+              <Text className="text-sm font-black uppercase tracking-[1.5px] text-amber-100">OCR-only fallback</Text>
+            </View>
+          ) : null}
         </View>
-        <Text className="mt-4 text-base leading-7 text-slate-300">{intelligence.summary}</Text>
+        <Text className="mt-4 text-base leading-7 text-slate-300">{intelligence.visualSummary}</Text>
+        <Text className="mt-3 text-sm font-bold leading-6 text-slate-400">{intelligence.layoutDescription}</Text>
       </ScreenCard>
 
       <ScreenCard eyebrow="Detected task" title={intelligence.detectedTask}>
@@ -44,6 +50,11 @@ export function ScreenIntelligenceCards({ intelligence, onActionPress, onContinu
         {intelligence.importantNumbers.length > 0 ? (
           <Text className="mt-3 text-base leading-7 text-slate-300">
             Important numbers: {intelligence.importantNumbers.join(", ")}
+          </Text>
+        ) : null}
+        {intelligence.importantVisualElements.length > 0 ? (
+          <Text className="mt-3 text-base leading-7 text-slate-300">
+            Visual elements: {intelligence.importantVisualElements.join(", ")}
           </Text>
         ) : null}
       </ScreenCard>
