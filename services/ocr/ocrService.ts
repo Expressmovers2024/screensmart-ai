@@ -1,15 +1,15 @@
-import { mlKitOcrProvider, placeholderOcrProvider } from "./providers";
+import { placeholderOcrProvider } from "./providers/placeholderOcrProvider";
 import type { OcrProvider, OcrProviderId, OcrService } from "./types";
 
 const providers: Record<OcrProviderId, OcrProvider | undefined> = {
   cloud: undefined,
   "on-device": undefined,
-  mlkit: mlKitOcrProvider,
+  mlkit: undefined,
   placeholder: placeholderOcrProvider,
   tesseract: undefined
 };
 
-let activeProviderId: OcrProviderId = "mlkit";
+let activeProviderId: OcrProviderId = "placeholder";
 
 export const ocrService: OcrService = {
   getActiveProvider() {

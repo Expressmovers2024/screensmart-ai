@@ -47,7 +47,7 @@ The upload and OCR routes now include the first MVP flow:
 - gallery image upload with Expo Image Picker
 - uploaded image preview
 - OCR preprocessing/loading progress
-- provider-based OCR extraction through `services/ocr/` using free on-device ML Kit where available
+- Expo Go-safe placeholder OCR through `services/ocr/` for temporary MVP testing
 - readable OCR result layout
 - copy extracted text
 - automatic local save for the current OCR session through the storage service
@@ -98,7 +98,7 @@ npm run typecheck
    npm start
    ```
 
-4. Test on a development build or native simulator/device. The OCR provider uses `@react-native-ml-kit/text-recognition`, so Expo Go may not include the required native module.
+4. Test the temporary MVP in Expo Go. OCR currently defaults to the placeholder provider so Expo Go can run without the ML Kit native module.
 
 5. Before handing a build to testers, run:
 
@@ -117,8 +117,8 @@ Use this checklist for the first complete ScreenSmart AI test pass:
 1. Launch the app and confirm the app opens to onboarding.
 2. Tap through onboarding and authentication to reach the Home dashboard.
 3. From Home, tap **Upload screenshot**.
-4. Grant photo library permission and choose a screenshot with visible text.
-5. Confirm OCR progress appears, then verify extracted text, confidence, and the image preview render.
+4. Grant photo library permission and choose any screenshot.
+5. Confirm OCR progress appears, then verify placeholder extracted text, confidence, and the image preview render.
 6. Tap **Open OCR result** and confirm the readable OCR screen loads.
 7. Tap **Generate AI summary**.
 8. Generate a short summary and confirm loading, error retry, fallback labeling, and summary text behavior.
@@ -143,6 +143,7 @@ Use this checklist for the first complete ScreenSmart AI test pass:
 - Local MVP storage uses AsyncStorage through the storage abstraction when Supabase env vars are absent.
 - Supabase remains a query-ready architecture path, but real multi-user auth and RLS-backed persistence are not part of this MVP test pass.
 - TTS uses Expo Speech and falls back to built-in voice labels if no native voices are reported by the device.
+- OCR defaults to placeholder output for Expo Go compatibility. The ML Kit provider remains in the codebase for native development builds but is not imported by the Expo Go default path.
 
 ## AI proxy contract
 
@@ -343,7 +344,7 @@ The proxy may return either an OpenRouter-compatible chat-completions response o
 
 ## Known MVP limitations
 
-- OCR requires the ML Kit native module; use a development build/simulator/device that includes native dependencies.
+- OCR is placeholder-only in Expo Go for this temporary MVP testing path. Real ML Kit OCR requires a development build/simulator/device that includes native dependencies and a future provider switch back to `mlkit`.
 - Real OpenRouter responses require a backend or edge-function proxy. The Expo client intentionally does not read provider API keys.
 - Local sessions, OCR text, chat messages, settings, and audio events are stored in AsyncStorage and are not encrypted.
 - Session screenshots are stored as local image URI metadata, not uploaded to durable cloud storage.

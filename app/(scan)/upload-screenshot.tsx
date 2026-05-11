@@ -138,7 +138,7 @@ export default function UploadScreenshotRoute() {
         <Text className="text-xs font-black uppercase tracking-[2px] text-electric">OCR intake</Text>
         <Text className="mt-3 text-4xl font-black leading-tight text-white">Upload screenshot</Text>
         <Text className="mt-4 text-base leading-7 text-slate-300">
-          Select a screenshot from your gallery, preview it, and run real on-device OCR through a provider-based service.
+          Select a screenshot from your gallery, preview it, and run Expo Go-safe placeholder OCR through the provider-based service.
         </Text>
       </View>
 
