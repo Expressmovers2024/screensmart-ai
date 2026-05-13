@@ -1,5 +1,2 @@
-import { useSessionStore } from "@/store/sessionStore";
-
-export function useCurrentSession() {
-  return useSessionStore((state) => state.currentSession);
-}
+export { openRouterProvider } from "./openrouterProvider";
+export { placeholderAiProvider } from "./placeholderProvider";
