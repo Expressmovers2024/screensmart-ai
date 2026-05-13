@@ -1,2 +1,5 @@
-# screensmart-ai
-AI screen companion that reads, summarizes, explains, and talks back about anything on your screen.
+import { useSessionStore } from "@/store/sessionStore";
+
+export function useCurrentSession() {
+  return useSessionStore((state) => state.currentSession);
+}
