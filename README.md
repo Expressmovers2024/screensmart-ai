@@ -1,6 +1,55 @@
-# ScreenSmart AI
+# ScreenSmart AI OS
 
 AI screen companion that reads, summarizes, explains, and talks back about anything on your screen.
+
+## What it does
+
+Upload any screenshot — a bill, an error message, an email, a tutorial — and ScreenSmart:
+
+- **Reads it** with Expo Go-safe placeholder OCR for MVP testing, with ML Kit OCR architecture preserved for native builds.
+- **Understands it** using Screen Intelligence and Vision AI through the Supabase `ai-proxy` when configured.
+- **Summarizes it** in plain language.
+- **Answers questions** about it via TalkBack.
+- **Plans workflows** with missions, checkpoints, suggested actions, and agent timelines.
+- **Saves workflow context** locally with Supabase-ready sync boundaries.
+
+## Business model
+
+> Free when you run it locally. Paid when hosted infrastructure runs it for you.
+
+- **Free Local** — local app state, free-model OpenRouter routing through your own proxy, OCR, summary, TalkBack, Mission Control.
+- **Pro Cloud** — hosted AI, cloud sync, advanced memory, and priority infrastructure are future expansion paths.
+- **Team** — shared workspaces and collaborative missions are future expansion paths.
+
+## Tech stack
+
+- React Native / Expo
+- TypeScript
+- Expo Router
+- Supabase client + Supabase Edge Functions
+- OpenRouter free-only model routing through `ai-proxy`
+- NativeWind / Tailwind CSS
+- Zustand
+
+## Quick start
+
+```bash
+# 1. Install dependencies
+npm install
+
+# 2. Copy env file and fill in values as needed
+cp .env.example .env
+
+# 3. Start the Expo dev server
+npm start
+```
+
+For deterministic installs:
+
+```bash
+npm ci
+npm run typecheck
+```
 
 ## App foundation
 
